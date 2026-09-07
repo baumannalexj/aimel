@@ -4,15 +4,51 @@ Hexagonal. Dependencies point inward: `core` knows `ports` and `domain` and noth
 depend on ports; nothing depends on adapters except `application`, which wires them.
 
 ```
-application/        runs the server; composition root for IOC and DI
-ports/              interfaces implemented by adapters, called by core
-domain/             domain objects
-core/               business logic; calls ports, never concrete adapters
+application/
+  main.py                     entrypoint; owns the singletons for the process lifetime
+  module_dependencies/        one module per adapter group
+    application_module.py     composition root
+    database_module.py        owns the driver singleton
+    repository_module.py      provides repositories over the db client
+    client_module.py          provides transport and spool clients
+    core_module.py            provides services
+ports/                        interfaces implemented by adapters, called by core
+domain/                       domain objects
+core/                         business logic; calls ports, never concrete adapters
 adapters/
-  repository/       anything that touches persistence directly
-  client/           clients for an external API or SDK
-common/             shared helpers with no domain knowledge
+  database/                   wraps the driver, holds the connection, executes SQL
+  repository/                 composes SQL, delegates execution to the database adapter
+  client/                     clients for an external API or SDK
+  resource/                   upstream adapters that call into core
+common/                       shared helpers with no domain knowledge
 ```
+
+## Composition root
+
+No DI framework. Modules are plain classes wired by hand in dependency order, each one responsible
+for building its own adapter from config, and each `provide_*` returning a port rather than a
+concrete type.
+
+```python
+class ApplicationModule:
+    def __init__(self, config: AppConfig):
+        self.database_module = DatabaseModule(config.database)
+        self.repository_module = RepositoryModule(self.database_module.provide_database_client())
+        self.client_module = ClientModule(config.smtp, config.mailbox, config.naming.service_name)
+        self.core_module = CoreModule(
+            self.repository_module.provide_email_repository(),
+            self.client_module.provide_email_transport(),
+            self.client_module.provide_mailbox_client(),
+        )
+```
+
+Two rules that keep this honest:
+
+- **A module takes ports, not other modules.** `RepositoryModule` receives an `IDatabaseClient`, not
+  the `DatabaseModule`, so it cannot reach past the interface to the raw connection.
+- **The repository never opens a connection.** `DatabaseModule` calls
+  `sqlite_database_client.start(...)` once; the repository composes SQL and hands it to the client.
+  That split is why swapping SQLite for anything else touches one module.
 
 ## Naming
 
