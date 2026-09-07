@@ -3,13 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from domain.message import SessionId, ThreadSlug
+from domain.domain_model import DomainModel
+from domain.message import EmailSubject, EmailThread, SessionId
 
 
 @dataclass(frozen=True)
-class Thread:
+class ThreadSummary(DomainModel):
     session: SessionId
-    slug: ThreadSlug
-    subject: str
+    thread: EmailThread
+    subject: EmailSubject
     message_count: int
     updated_at: datetime

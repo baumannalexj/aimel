@@ -118,7 +118,7 @@ class CliApplication:
             assert isinstance(request, SendRequest)
             content = resource.send(request).content
             if as_json:
-                print(json.dumps({"id": content.id, "subject": content.subject,
+                print(json.dumps({"id": content.id, "subject": content.subject.text,
                                   "thread": str(content.thread)}))
             else:
                 direction = "you -> agent" if content.author.value == "human" else "agent -> you"
@@ -162,7 +162,8 @@ class CliApplication:
                 print("no such thread")
             else:
                 first = messages[0].content
-                print(f"{colors.paint_subject(first.session, first.subject)}  "
+                chip = colors.paint(first.session, first.session.short)
+                print(f"{chip}  {first.subject}  "
                       f"({len(messages)} messages, newest first)")
                 for message in messages:
                     print(f"\n  {message.content.author.value:<6} "
@@ -175,15 +176,17 @@ class CliApplication:
             threads = resource.threads(request)
             if as_json:
                 print(json.dumps([
-                    {"thread": str(t.slug), "subject": t.subject, "messages": t.message_count,
+                    {"thread": str(t.thread.slug), "thread_uuid": t.thread.thread_id,
+                     "subject": t.subject.text, "messages": t.message_count,
                      "updated_at": t.updated_at.isoformat()} for t in threads], indent=2))
             elif not threads:
                 print("no threads yet")
             else:
                 for thread in threads:
-                    print(f"{str(thread.slug):<40} {thread.message_count:>3} msg  "
+                    chip = colors.paint(thread.session, thread.session.short)
+                    print(f"{str(thread.thread.slug):<40} {thread.message_count:>3} msg  "
                           f"{thread.updated_at.isoformat(timespec='seconds')}")
-                    print(f"{'':<40} {colors.paint_subject(thread.session, thread.subject)}")
+                    print(f"{'':<40} {chip}  {thread.subject}")
             return 0
 
         if command == "deleted":
@@ -226,7 +229,7 @@ class CliApplication:
         return {
             "id": content.id,
             "state": message.state.value,
-            "subject": content.subject,
+            "subject": content.subject.text,
             "from": content.sender.address,
             "to": content.recipient.address,
             "thread": str(content.thread),
@@ -238,7 +241,8 @@ class CliApplication:
     @staticmethod
     def _print_row(message: Message, colors: SessionColorPalette) -> None:
         content = message.content
-        print(f"* {content.id}  {colors.paint_subject(content.session, content.subject)}")
+        chip = colors.paint(content.session, content.session.short)
+        print(f"* {content.id}  {chip}  {content.subject}")
         print(f"    from {content.sender}  "
               f"{content.sent_at.isoformat(timespec='seconds')}  {content.preview[:70]}")
 

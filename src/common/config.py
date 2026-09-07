@@ -16,7 +16,7 @@ DEFAULTS: dict[str, object] = {
     "domain": "aimel.com",
     "human_address": "{user}@{domain}",
     "agent_address": "claude-{session8}@{domain}",
-    "subject_template": "{session8}: {title}",
+    "subject_template": "{title}",
     "max_messages": 5000,
     "purge_after_drain": False,
 }

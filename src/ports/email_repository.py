@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from domain.message import (
     DeletedMessage,
     Email,
+    EmailThread,
     LiveMessage,
     Message,
     MessageState,
@@ -14,7 +15,7 @@ from domain.message import (
     ThreadSlug,
     UnreadMessage,
 )
-from domain.thread import Thread
+from domain.thread import ThreadSummary
 
 
 class IEmailRepository(ABC):
@@ -25,6 +26,10 @@ class IEmailRepository(ABC):
         """Create anything missing. Safe to call on every start."""
 
     @abstractmethod
+    def resolve_thread(self, session: SessionId, slug: ThreadSlug) -> EmailThread:
+        """The thread for this slug, reusing its id if it already exists and minting one if not."""
+
+    @abstractmethod
     def add(self, correspondence: NewCorrespondence) -> UnreadMessage:
         """Persist new mail. The id and created_at come back from the schema."""
 
@@ -33,10 +38,14 @@ class IEmailRepository(ABC):
         """Look a message up whatever state it is in."""
 
     @abstractmethod
-    def list_unread(
-        self, recipient: Email | None = None, thread: ThreadSlug | None = None, limit: int = 50
+    def list_unread(self, recipient: Email, limit: int = 50) -> list[UnreadMessage]:
+        """Unread mail for a mailbox, newest first."""
+
+    @abstractmethod
+    def list_unread_in_thread(
+        self, recipient: Email, thread: EmailThread, limit: int = 50
     ) -> list[UnreadMessage]:
-        """Unread mail, newest first."""
+        """Unread mail for a mailbox on one thread, newest first."""
 
     @abstractmethod
     def list_by_state(self, state: MessageState, limit: int = 50) -> list[Message]:
@@ -55,9 +64,9 @@ class IEmailRepository(ABC):
         """Whether intake has already claimed this message, so draining stays idempotent."""
 
     @abstractmethod
-    def history(self, session: SessionId, thread: ThreadSlug) -> list[Message]:
+    def history(self, session: SessionId, thread: EmailThread) -> list[Message]:
         """Every message on a thread, newest first, deleted ones included."""
 
     @abstractmethod
-    def threads(self, session: SessionId) -> list[Thread]:
+    def threads(self, session: SessionId) -> list[ThreadSummary]:
         """Threads for a session, most recently updated first."""

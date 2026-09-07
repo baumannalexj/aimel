@@ -8,6 +8,8 @@ from domain.message import (
     Correspondence,
     DeletedMessage,
     Email,
+    EmailSubject,
+    EmailThread,
     LiveMessage,
     Message,
     MessageState,
@@ -17,7 +19,7 @@ from domain.message import (
     ThreadSlug,
     UnreadMessage,
 )
-from domain.thread import Thread
+from domain.thread import ThreadSummary
 from ports.database_client import IDatabaseClient, Row
 from ports.email_repository import IEmailRepository
 
@@ -35,9 +37,10 @@ IDENTITY_DDL = f"""
     uuid           TEXT NOT NULL UNIQUE DEFAULT {NEW_UUID},
     created_at     TEXT NOT NULL DEFAULT {NOW}"""
 
-CONTENT_DDL = """
+CONTENT_DDL = f"""
     session        TEXT NOT NULL,
     thread         TEXT NOT NULL,
+    thread_uuid    TEXT NOT NULL DEFAULT {NEW_UUID},
     subject        TEXT NOT NULL,
     sender         TEXT NOT NULL,
     recipient      TEXT NOT NULL,
@@ -63,18 +66,15 @@ CREATE_TABLE = {
 }
 
 CONTENT_FIELDS = (
-    "session, thread, subject, sender, recipient, author, "
+    "session, thread, thread_uuid, subject, sender, recipient, author, "
     "rfc_message_id, in_reply_to, refs, body_html, body_text, sent_at"
 )
 CONTENT_BINDS = (
-    ":session, :thread, :subject, :sender, :recipient, :author, "
+    ":session, :thread, :thread_uuid, :subject, :sender, :recipient, :author, "
     ":rfc_message_id, :in_reply_to, :refs, :body_html, :body_text, :sent_at"
 )
 
-# New mail: pk, uuid and created_at all come from the schema.
 INSERT_NEW_UNREAD = f"INSERT INTO unread ({CONTENT_FIELDS}) VALUES ({CONTENT_BINDS})"
-
-# A move keeps the original uuid and created_at; only the state timestamp is schema-stamped.
 INSERT_MOVED_READ = (
     f"INSERT INTO read (uuid, created_at, {CONTENT_FIELDS}) "
     f"VALUES (:uuid, :created_at, {CONTENT_BINDS})"
@@ -104,25 +104,34 @@ EXISTS_RFC = {
     for state in MessageState
 }
 
-SELECT_UNREAD = "SELECT * FROM unread ORDER BY sent_at DESC LIMIT :limit"
+SELECT_THREAD_UUID = """
+SELECT thread_uuid FROM (
+    SELECT thread_uuid FROM unread  WHERE session = :session AND thread = :thread
+    UNION ALL
+    SELECT thread_uuid FROM read    WHERE session = :session AND thread = :thread
+    UNION ALL
+    SELECT thread_uuid FROM deleted WHERE session = :session AND thread = :thread
+) LIMIT 1
+"""
+
 SELECT_UNREAD_FOR = (
     "SELECT * FROM unread WHERE recipient = :recipient ORDER BY sent_at DESC LIMIT :limit"
 )
 SELECT_UNREAD_FOR_THREAD = (
-    "SELECT * FROM unread WHERE recipient = :recipient AND thread = :thread "
+    "SELECT * FROM unread WHERE recipient = :recipient AND thread_uuid = :thread_uuid "
     "ORDER BY sent_at DESC LIMIT :limit"
 )
 
 SELECT_THREADS = """
-SELECT thread, subject, COUNT(*) AS count, MAX(sent_at) AS updated_at
+SELECT thread, thread_uuid, subject, COUNT(*) AS count, MAX(sent_at) AS updated_at
 FROM (
-    SELECT thread, subject, sent_at FROM unread  WHERE session = :session
+    SELECT thread, thread_uuid, subject, sent_at FROM unread  WHERE session = :session
     UNION ALL
-    SELECT thread, subject, sent_at FROM read    WHERE session = :session
+    SELECT thread, thread_uuid, subject, sent_at FROM read    WHERE session = :session
     UNION ALL
-    SELECT thread, subject, sent_at FROM deleted WHERE session = :session
+    SELECT thread, thread_uuid, subject, sent_at FROM deleted WHERE session = :session
 )
-GROUP BY thread
+GROUP BY thread_uuid
 ORDER BY updated_at DESC
 """
 
@@ -138,8 +147,16 @@ class SqliteEmailRepository(IEmailRepository):
             self._db.execute(CREATE_TABLE[state])
             self._db.execute(
                 f"CREATE INDEX IF NOT EXISTS {state.value}_thread "
-                f"ON {state.value} (session, thread, sent_at DESC)"
+                f"ON {state.value} (session, thread_uuid, sent_at DESC)"
             )
+
+    def resolve_thread(self, session: SessionId, slug: ThreadSlug) -> EmailThread:
+        rows = self._db.query(
+            SELECT_THREAD_UUID, {"session": str(session), "thread": str(slug)}
+        )
+        if rows:
+            return EmailThread.existing(rows[0]["thread_uuid"], slug)
+        return EmailThread.opening(slug)
 
     # --- writes ---
 
@@ -179,22 +196,20 @@ class SqliteEmailRepository(IEmailRepository):
                 return _to_message(rows[0], state)
         return None
 
-    def list_unread(
-        self, recipient: Email | None = None, thread: ThreadSlug | None = None, limit: int = 50
+    def list_unread(self, recipient: Email, limit: int = 50) -> list[UnreadMessage]:
+        rows = self._db.query(
+            SELECT_UNREAD_FOR, {"recipient": recipient.address, "limit": limit}
+        )
+        return [_to_message(row, MessageState.UNREAD) for row in rows]
+
+    def list_unread_in_thread(
+        self, recipient: Email, thread: EmailThread, limit: int = 50
     ) -> list[UnreadMessage]:
-        if recipient is not None and thread is not None:
-            sql = SELECT_UNREAD_FOR_THREAD
-            params = {
-                "recipient": recipient.address,
-                "thread": str(thread),
-                "limit": limit,
-            }
-        elif recipient is not None:
-            sql = SELECT_UNREAD_FOR
-            params = {"recipient": recipient.address, "limit": limit}
-        else:
-            sql, params = SELECT_UNREAD, {"limit": limit}
-        return [_to_message(row, MessageState.UNREAD) for row in self._db.query(sql, params)]
+        rows = self._db.query(
+            SELECT_UNREAD_FOR_THREAD,
+            {"recipient": recipient.address, "thread_uuid": thread.thread_id, "limit": limit},
+        )
+        return [_to_message(row, MessageState.UNREAD) for row in rows]
 
     def list_by_state(self, state: MessageState, limit: int = 50) -> list[Message]:
         rows = self._db.query(SELECT_BY_STATE[state], {"limit": limit})
@@ -206,22 +221,22 @@ class SqliteEmailRepository(IEmailRepository):
                 return True
         return False
 
-    def history(self, session: SessionId, thread: ThreadSlug) -> list[Message]:
+    def history(self, session: SessionId, thread: EmailThread) -> list[Message]:
         messages: list[Message] = []
-        params = {"session": str(session), "thread": str(thread)}
+        params = {"session": str(session), "thread": str(thread.slug)}
         for state in MessageState:
             messages.extend(
                 _to_message(row, state) for row in self._db.query(SELECT_THREAD[state], params)
             )
         return sorted(messages, key=lambda m: m.content.sent_at, reverse=True)
 
-    def threads(self, session: SessionId) -> list[Thread]:
+    def threads(self, session: SessionId) -> list[ThreadSummary]:
         rows = self._db.query(SELECT_THREADS, {"session": str(session)})
         return [
-            Thread(
+            ThreadSummary(
                 session=session,
-                slug=ThreadSlug(row["thread"]),
-                subject=row["subject"],
+                thread=EmailThread.existing(row["thread_uuid"], ThreadSlug(row["thread"])),
+                subject=EmailSubject(row["subject"]),
                 message_count=row["count"],
                 updated_at=_require(row["updated_at"], "updated_at"),
             )
@@ -232,8 +247,9 @@ class SqliteEmailRepository(IEmailRepository):
 def _content_binds(content: NewCorrespondence | Correspondence) -> dict[str, Any]:
     return {
         "session": str(content.session),
-        "thread": str(content.thread),
-        "subject": content.subject,
+        "thread": str(content.thread.slug),
+        "thread_uuid": content.thread.thread_id,
+        "subject": content.subject.text,
         "sender": content.sender.address,
         "recipient": content.recipient.address,
         "author": content.author.value,
@@ -258,8 +274,8 @@ def _to_message(row: Row, state: MessageState) -> Message:
         id=row["uuid"],
         created_at=_require(row["created_at"], "created_at"),
         session=SessionId(row["session"]),
-        thread=ThreadSlug(row["thread"]),
-        subject=row["subject"],
+        thread=EmailThread.existing(row["thread_uuid"], ThreadSlug(row["thread"])),
+        subject=EmailSubject(row["subject"]),
         sender=Email(row["sender"]),
         recipient=Email(row["recipient"]),
         author=Author(row["author"]),

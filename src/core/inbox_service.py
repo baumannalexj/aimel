@@ -7,6 +7,8 @@ from domain.message import (
     Author,
     DeletedMessage,
     Email,
+    EmailSubject,
+    EmailThread,
     Message,
     MessageState,
     NewCorrespondence,
@@ -17,10 +19,12 @@ from domain.message import (
     now,
 )
 from domain.outgoing import Draft, Envelope
-from domain.thread import Thread
+from domain.thread import ThreadSummary
 from ports.email_repository import IEmailRepository
 from ports.email_transport import IEmailTransport
 from ports.mailbox_client import CapturedMessage, IMailboxClient
+
+INTAKE_SESSION = "00000000-0000-4000-8000-000000000000"
 
 
 class InboxService:
@@ -38,7 +42,10 @@ class InboxService:
         self._mailbox = mailbox_client
         self._renderer = thread_renderer
 
-    def send(self, draft: Draft) -> UnreadMessage:
+    def resolve_thread(self, session: SessionId, slug: ThreadSlug) -> EmailThread:
+        return self._repository.resolve_thread(session, slug)
+
+    def send_email(self, draft: Draft) -> UnreadMessage:
         history = self._repository.history(draft.session, draft.thread)
         chain = tuple(message.content.rfc_message_id for message in reversed(history))
         envelope = Envelope(
@@ -71,10 +78,13 @@ class InboxService:
             )
         )
 
-    def poll(
-        self, mailbox: Email, thread: ThreadSlug | None = None, limit: int = 50
+    def poll(self, mailbox: Email, limit: int = 50) -> list[UnreadMessage]:
+        return self._repository.list_unread(mailbox, limit=limit)
+
+    def poll_thread(
+        self, mailbox: Email, thread: EmailThread, limit: int = 50
     ) -> list[UnreadMessage]:
-        return self._repository.list_unread(recipient=mailbox, thread=thread, limit=limit)
+        return self._repository.list_unread_in_thread(mailbox, thread, limit=limit)
 
     def read(self, message_id: str) -> ReadMessage:
         message = self._require(message_id)
@@ -90,10 +100,10 @@ class InboxService:
             return message
         return self._repository.soft_delete(message)
 
-    def history(self, session: SessionId, thread: ThreadSlug) -> list[Message]:
+    def history(self, session: SessionId, thread: EmailThread) -> list[Message]:
         return self._repository.history(session, thread)
 
-    def threads(self, session: SessionId) -> list[Thread]:
+    def threads(self, session: SessionId) -> list[ThreadSummary]:
         return self._repository.threads(session)
 
     def deleted(self, limit: int = 50) -> list[Message]:
@@ -119,14 +129,15 @@ class InboxService:
         return message
 
     def _from_capture(self, captured: CapturedMessage) -> NewCorrespondence:
-        author = Author.HUMAN if captured.headers.get("author") == "human" else Author.AGENT
+        session = SessionId(captured.headers.get("session", "") or INTAKE_SESSION)
+        slug = ThreadSlug(captured.headers.get("thread", "") or "intake")
         return NewCorrespondence(
-            session=SessionId(captured.headers.get("session", "") or "00000000-intake"),
-            thread=ThreadSlug(captured.headers.get("thread", "") or "intake"),
-            subject=captured.subject,
+            session=session,
+            thread=self._repository.resolve_thread(session, slug),
+            subject=EmailSubject(captured.subject or "(no subject)"),
             sender=Email(captured.sender),
             recipient=Email(captured.recipient),
-            author=author,
+            author=Author.HUMAN if captured.headers.get("author") == "human" else Author.AGENT,
             rfc_message_id=captured.rfc_message_id,
             in_reply_to=captured.headers.get("in_reply_to", ""),
             references=tuple(captured.headers.get("references", "").split()),

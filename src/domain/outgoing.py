@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from domain.message import Author, Email, SessionId, ThreadSlug
+from domain.domain_model import DomainModel
+from domain.message import Author, Email, EmailSubject, EmailThread, SessionId
 
 
 @dataclass(frozen=True)
-class Draft:
+class Draft(DomainModel):
     """What a caller wants sent. Constructed at the edge, before core is called."""
 
     session: SessionId
-    thread: ThreadSlug
-    subject: str
+    thread: EmailThread
+    subject: EmailSubject
     sender: Email
     recipient: Email
     author: Author
@@ -21,13 +22,13 @@ class Draft:
 
 
 @dataclass(frozen=True)
-class Envelope:
+class Envelope(DomainModel):
     """What actually goes on the wire, once core has resolved the reply chain."""
 
     sender: Email
     recipient: Email
-    subject: str
+    subject: EmailSubject
     session: SessionId
-    thread: ThreadSlug
+    thread: EmailThread
     in_reply_to: str
     references: tuple[str, ...]

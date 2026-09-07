@@ -20,7 +20,7 @@ from domain.message import (
     UnreadMessage,
 )
 from domain.outgoing import Draft
-from domain.thread import Thread
+from domain.thread import ThreadSummary
 
 
 class EmailCliResource:
@@ -31,21 +31,23 @@ class EmailCliResource:
         self._naming = naming_policy
 
     def send(self, request: SendRequest) -> UnreadMessage:
-        history = self._inbox.history(request.session, request.thread)
+        thread = self._inbox.resolve_thread(request.session, request.thread)
+        history = self._inbox.history(request.session, thread)
         if history:
+            # The subject is the thread's context, set once when it opens.
             subject = history[0].content.subject
         elif request.title:
-            subject = self._naming.subject_for(request.session, request.thread, request.title)
+            subject = self._naming.subject_for(request.session, thread, request.title)
         else:
-            raise ValueError(f"thread '{request.thread}' is new — pass --title to open it")
+            raise ValueError(f"thread '{thread}' is new — pass --title to open it")
 
         human = self._naming.human_address(request.session)
         agent = self._naming.agent_address(request.session)
         from_human = request.author is Author.HUMAN
-        return self._inbox.send(
+        return self._inbox.send_email(
             Draft(
                 session=request.session,
-                thread=request.thread,
+                thread=thread,
                 subject=subject,
                 sender=human if from_human else agent,
                 recipient=agent if from_human else human,
@@ -57,9 +59,11 @@ class EmailCliResource:
         )
 
     def poll(self, request: PollRequest) -> list[UnreadMessage]:
-        return self._inbox.poll(
-            self.mailbox_for(request), thread=request.thread, limit=request.limit
-        )
+        mailbox = self.mailbox_for(request)
+        if request.thread is None:
+            return self._inbox.poll(mailbox, limit=request.limit)
+        thread = self._inbox.resolve_thread(request.session, request.thread)
+        return self._inbox.poll_thread(mailbox, thread, limit=request.limit)
 
     def read(self, request: MessageRequest) -> ReadMessage:
         return self._inbox.read(request.message_id)
@@ -68,9 +72,10 @@ class EmailCliResource:
         return self._inbox.delete(request.message_id)
 
     def history(self, request: ThreadRequest) -> list[Message]:
-        return self._inbox.history(request.session, request.thread)
+        thread = self._inbox.resolve_thread(request.session, request.thread)
+        return self._inbox.history(request.session, thread)
 
-    def threads(self, request: SessionRequest) -> list[Thread]:
+    def threads(self, request: SessionRequest) -> list[ThreadSummary]:
         return self._inbox.threads(request.session)
 
     def deleted(self, request: ListRequest) -> list[Message]:

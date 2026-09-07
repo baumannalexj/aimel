@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+
+from domain.domain_model import DomainModel
 
 
 class MessageState(Enum):
@@ -24,7 +27,7 @@ class Author(Enum):
 
 
 @dataclass(frozen=True)
-class Email:
+class Email(DomainModel):
     """A core object so validation has somewhere to live as it grows."""
 
     address: str
@@ -38,7 +41,7 @@ class Email:
 
 
 @dataclass(frozen=True)
-class ThreadSlug:
+class ThreadSlug(DomainModel):
     value: str
 
     def __post_init__(self) -> None:
@@ -55,7 +58,43 @@ class ThreadSlug:
 
 
 @dataclass(frozen=True)
-class SessionId:
+class EmailSubject(DomainModel):
+    """The thread's context. Set once, when the thread opens."""
+
+    text: str
+
+    def __post_init__(self) -> None:
+        if not self.text:
+            raise ValueError("subject cannot be empty")
+
+    def __str__(self) -> str:
+        return self.text
+
+
+@dataclass(frozen=True)
+class EmailThread(DomainModel):
+    """Identity of the email chain itself, not its topic — the subject carries the topic."""
+
+    thread_id: str
+    slug: ThreadSlug
+
+    @classmethod
+    def opening(cls, slug: ThreadSlug) -> "EmailThread":
+        """First message on a thread — mint the id here."""
+        return cls(thread_id=str(uuid.uuid4()), slug=slug)
+
+    @classmethod
+    def existing(cls, thread_id: str, slug: ThreadSlug) -> "EmailThread":
+        if not thread_id:
+            raise ValueError("an existing thread must have an id")
+        return cls(thread_id=thread_id, slug=slug)
+
+    def __str__(self) -> str:
+        return str(self.slug)
+
+
+@dataclass(frozen=True)
+class SessionId(DomainModel):
     value: str
 
     def __post_init__(self) -> None:
@@ -71,12 +110,12 @@ class SessionId:
 
 
 @dataclass(frozen=True)
-class NewCorrespondence:
+class NewCorrespondence(DomainModel):
     """Not yet persisted, so it has no id and no created_at — those are the database's to assign."""
 
     session: SessionId
-    thread: ThreadSlug
-    subject: str
+    thread: EmailThread
+    subject: EmailSubject
     sender: Email
     recipient: Email
     author: Author
@@ -89,7 +128,7 @@ class NewCorrespondence:
 
 
 @dataclass(frozen=True)
-class Correspondence:
+class Correspondence(DomainModel):
     """Everything true of a persisted message regardless of what state it is in.
 
     `id` is the row's uuid. The surrogate primary key never leaves the repository.
@@ -98,8 +137,8 @@ class Correspondence:
     id: str
     created_at: datetime
     session: SessionId
-    thread: ThreadSlug
-    subject: str
+    thread: EmailThread
+    subject: EmailSubject
     sender: Email
     recipient: Email
     author: Author
@@ -112,12 +151,14 @@ class Correspondence:
 
     @property
     def preview(self) -> str:
-        body = self.body_text or re.sub(r"<[^>]+>", " ", self.body_html)
-        return " ".join(body.split())[:120]
+        """Quoted history is stripped, otherwise every reply previews as the whole thread."""
+        body = self.body_text or self.body_html
+        body = re.sub(r"<hr><details.*?</details>", " ", body, flags=re.S)
+        return " ".join(re.sub(r"<[^>]+>", " ", body).split())[:120]
 
 
 @dataclass(frozen=True)
-class UnreadMessage:
+class UnreadMessage(DomainModel):
     content: Correspondence
 
     @property
@@ -126,7 +167,7 @@ class UnreadMessage:
 
 
 @dataclass(frozen=True)
-class ReadMessage:
+class ReadMessage(DomainModel):
     content: Correspondence
     read_at: datetime
 
@@ -136,7 +177,7 @@ class ReadMessage:
 
 
 @dataclass(frozen=True)
-class DeletedMessage:
+class DeletedMessage(DomainModel):
     content: Correspondence
     deleted_at: datetime
     previous_state: MessageState
