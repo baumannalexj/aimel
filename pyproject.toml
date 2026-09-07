@@ -1,0 +1,9 @@
+[project]
+name = "aimel"
+version = "0.1.0"
+description = "Local email correspondence for AI agents"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false

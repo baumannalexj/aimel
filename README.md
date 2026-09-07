@@ -4,10 +4,37 @@ Local email for talking to Claude agents. One [Mailpit](https://mailpit.axllent.
 whole backend, plus a stdlib-only Python CLI that gives agents a threading contract. Nothing leaves the
 machine and there are no accounts — any address at the configured domain just works.
 
+## Run
+
+First time:
+
 ```sh
-bin/aimel up                 # prompts for the mail database dir, remembers it
+git clone git@github.com:baumannalexj/aimel.git && cd aimel
+bin/aimel up                 # prompts for the mail database dir, remembers the answer
 bin/aimel install-skill      # drops the agent contract in ~/.claude/skills/aimel
-open http://localhost:8025
+bin/aimel open               # or just: open http://localhost:8025
+```
+
+Day to day:
+
+```sh
+bin/aimel up                 # start the container (idempotent)
+bin/aimel status             # resolved config + mailpit health + your addresses
+bin/aimel threads            # what is open for this session
+bin/aimel poll               # unread mail for this session
+bin/aimel down               # stop the container; mail survives in the database
+bin/aimel logs -f            # follow container logs
+```
+
+`bin/aimel` is the only entrypoint you need — it runs the CLI through `uv` when available and falls
+back to `python3` otherwise. Call it from any directory; it resolves its own repo path and leaves your
+working directory alone, which matters because session detection reads `cwd`.
+
+To bypass the runner and drive the CLI directly:
+
+```sh
+uv run --project /path/to/aimel python /path/to/aimel/aimel.py status
+AIMEL_PYTHON=python3 bin/aimel status     # force a specific interpreter
 ```
 
 | Port | Use |
@@ -80,5 +107,9 @@ Mailpit's web UI can render mail but not compose it, so replying to an agent goe
 
 ## Requirements
 
-Docker and Python 3 — no pip packages. On a Mac running Colima, note that `docker compose` may not be
-installed as a plugin; the runner falls back to the standalone `docker-compose` binary automatically.
+Docker, and either [uv](https://docs.astral.sh/uv/) or Python 3.12+. There are no third-party
+packages — `pyproject.toml` declares an empty dependency set, so `uv` is here for a pinned interpreter
+and a reproducible environment rather than to install anything.
+
+On a Mac running Colima, `docker compose` may not exist as a plugin; the runner falls back to the
+standalone `docker-compose` binary automatically.

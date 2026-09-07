@@ -2,14 +2,21 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PY="${AIMEL_PYTHON:-python3}"
 SETTINGS="${AIMEL_SETTINGS:-$HOME/.config/aimel/settings.json}"
 DEFAULT_MAIL_DIR="$HOME/_claude-email"
 
-cli() { "$PY" "$REPO/aimel.py" "$@"; }
+if [ -n "${AIMEL_PYTHON:-}" ]; then
+  RUN=("$AIMEL_PYTHON")
+elif command -v uv >/dev/null 2>&1; then
+  RUN=(uv run --quiet --project "$REPO" python)
+else
+  RUN=(python3)
+fi
+
+cli() { "${RUN[@]}" "$REPO/aimel.py" "$@"; }
 
 saved_mail_dir() {
-  "$PY" - "$SETTINGS" <<'EOF'
+  "${RUN[@]}" - "$SETTINGS" <<'EOF'
 import json, os, sys
 path = os.path.expanduser(sys.argv[1])
 if os.path.exists(path):
@@ -37,7 +44,8 @@ resolve_mail_dir() {
 }
 
 wait_for_mailpit() {
-  local base; base="$(cli settings | "$PY" -c 'import json,sys;print(json.load(sys.stdin)["api_base"])')"
+  local base
+  base="$(cli settings | "${RUN[@]}" -c 'import json,sys;print(json.load(sys.stdin)["api_base"])')"
   for _ in $(seq 1 30); do
     if curl -fsS -o /dev/null "$base/api/v1/info" 2>/dev/null; then return 0; fi
     sleep 1
@@ -59,8 +67,7 @@ case "${1:-status}" in
     compose "$(eval echo "$(saved_mail_dir)")" down
     ;;
   restart)
-    dir="$(eval echo "$(saved_mail_dir)")"
-    compose "$dir" restart
+    compose "$(eval echo "$(saved_mail_dir)")" restart
     ;;
   logs)
     compose "$(eval echo "$(saved_mail_dir)")" logs "${@:2}"
@@ -72,7 +79,7 @@ case "${1:-status}" in
     echo "installed skill -> $target/SKILL.md"
     ;;
   open)
-    "$PY" -c 'import json,sys,webbrowser;webbrowser.open(json.load(sys.stdin)["api_base"])' < <(cli settings)
+    cli settings | "${RUN[@]}" -c 'import json,sys,webbrowser;webbrowser.open(json.load(sys.stdin)["api_base"])'
     ;;
   *)
     cli "$@"
