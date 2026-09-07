@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -100,12 +100,6 @@ class UnreadMessage:
     def state(self) -> MessageState:
         return MessageState.UNREAD
 
-    def mark_read(self, when: datetime | None = None) -> "ReadMessage":
-        return ReadMessage(content=self.content, read_at=when or now())
-
-    def soft_delete(self, when: datetime | None = None) -> "DeletedMessage":
-        return DeletedMessage(content=self.content, deleted_at=when or now())
-
 
 @dataclass(frozen=True)
 class ReadMessage:
@@ -116,15 +110,12 @@ class ReadMessage:
     def state(self) -> MessageState:
         return MessageState.READ
 
-    def soft_delete(self, when: datetime | None = None) -> "DeletedMessage":
-        return DeletedMessage(content=self.content, deleted_at=when or now(), read_at=self.read_at)
-
 
 @dataclass(frozen=True)
 class DeletedMessage:
     content: Correspondence
     deleted_at: datetime
-    read_at: datetime | None = None
+    previous_state: MessageState
 
     @property
     def state(self) -> MessageState:
@@ -132,6 +123,7 @@ class DeletedMessage:
 
 
 Message = UnreadMessage | ReadMessage | DeletedMessage
+LiveMessage = UnreadMessage | ReadMessage
 
 
 def now() -> datetime:

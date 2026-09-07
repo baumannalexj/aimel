@@ -9,24 +9,34 @@ from pathlib import Path
 from ports.database_client import IDatabaseClient, Params, Row
 
 
-def start(database: Path, timeout: float = 5.0) -> sqlite3.Connection:
-    """Open the one connection the process will share. Called by DatabaseModule."""
-    path = Path(database)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(
-        path, timeout=timeout, isolation_level=None, check_same_thread=False
-    )
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute("PRAGMA foreign_keys=ON")
-    return connection
+class SqliteSessionFactory:
+    """Makes driver sessions. Autocommit by default; transactions ask for one without it."""
+
+    def __init__(self, database: Path, timeout: float = 5.0):
+        self._path = Path(database)
+        self._timeout = timeout
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    def open(self, autocommit: bool = True) -> sqlite3.Connection:
+        connection = sqlite3.connect(
+            self._path, timeout=self._timeout, check_same_thread=False
+        )
+        connection.row_factory = sqlite3.Row
+        connection.autocommit = autocommit
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA foreign_keys=ON")
+        return connection
+
+
+def start(database: Path, timeout: float = 5.0) -> SqliteSessionFactory:
+    """Called once by DatabaseModule."""
+    return SqliteSessionFactory(database, timeout)
 
 
 class SqliteDatabaseClient(IDatabaseClient):
-    """Wraps the connection singleton. Executes SQL, never writes any."""
-
-    def __init__(self, connection: sqlite3.Connection):
-        self._connection = connection
+    def __init__(self, factory: SqliteSessionFactory, connection: sqlite3.Connection | None = None):
+        self._factory = factory
+        self._connection = connection if connection is not None else factory.open(autocommit=True)
         self._lock = threading.RLock()
 
     def execute(self, sql: str, params: Params = ()) -> None:
@@ -39,15 +49,17 @@ class SqliteDatabaseClient(IDatabaseClient):
         return [dict(row) for row in rows]
 
     @contextmanager
-    def transaction(self) -> Iterator[None]:
-        with self._lock:
-            self._connection.execute("BEGIN IMMEDIATE")
-            try:
-                yield
-            except Exception:
-                self._connection.execute("ROLLBACK")
-                raise
-            self._connection.execute("COMMIT")
+    def transaction(self) -> Iterator[IDatabaseClient]:
+        connection = self._factory.open(autocommit=False)
+        try:
+            yield SqliteDatabaseClient(self._factory, connection)
+        except Exception:
+            connection.rollback()
+            raise
+        else:
+            connection.commit()
+        finally:
+            connection.close()
 
     def close(self) -> None:
         with self._lock:

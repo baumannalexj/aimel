@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from contextlib import AbstractContextManager
 from typing import Any
 
@@ -10,7 +10,7 @@ Row = dict[str, Any]
 
 
 class IDatabaseClient(ABC):
-    """Owns the driver connection. Callers hand it SQL; it never composes any."""
+    """Owns the driver session. Callers hand it SQL; it never composes any."""
 
     @abstractmethod
     def execute(self, sql: str, params: Params = ()) -> None:
@@ -21,9 +21,13 @@ class IDatabaseClient(ABC):
         """Run a statement and return rows as plain dicts."""
 
     @abstractmethod
-    def transaction(self) -> AbstractContextManager[None]:
-        """Group statements so they commit or roll back together."""
+    def transaction(self) -> AbstractContextManager["IDatabaseClient"]:
+        """Open a non-autocommit session and yield a client bound to it.
+
+        Commits when the block exits cleanly, rolls back on any exception. Statements must go
+        through the yielded client — the outer client is autocommit and would not be enrolled.
+        """
 
     @abstractmethod
     def close(self) -> None:
-        """Release the connection."""
+        """Release the session."""

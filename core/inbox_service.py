@@ -83,13 +83,13 @@ class InboxService:
             return message
         if isinstance(message, DeletedMessage):
             raise ValueError(f"message is deleted: {message_id}")
-        return self._repository.mark_read(message.mark_read())
+        return self._repository.mark_read(message)
 
     def delete(self, message_id: str) -> DeletedMessage:
         message = self._require(message_id)
         if isinstance(message, DeletedMessage):
             return message
-        return self._repository.soft_delete(message.soft_delete())
+        return self._repository.soft_delete(message)
 
     def history(self, session: SessionId, thread: ThreadSlug) -> list[Message]:
         return self._repository.history(session, thread)

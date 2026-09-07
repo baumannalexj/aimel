@@ -16,6 +16,7 @@ from adapters.resource.email_cli_resource import (
 from application.module_dependencies.application_module import ApplicationModule
 from common import config as config_loader
 from common.session import detect
+from common.session_color import paint_subject
 from domain.message import Message
 
 
@@ -159,7 +160,9 @@ def dispatch(args, resource: EmailCliResource, module: ApplicationModule, config
         elif not messages:
             print(f"no thread '{args.thread}'")
         else:
-            print(f"{messages[0].content.subject}  ({len(messages)} messages, newest first)")
+            first = messages[0].content
+            print(f"{paint_subject(first.session, first.subject)}  "
+                  f"({len(messages)} messages, newest first)")
             for message in messages:
                 print(f"\n  {message.content.author.value:<6} "
                       f"{message.content.sent_at.isoformat(timespec='seconds')}  "
@@ -179,7 +182,7 @@ def dispatch(args, resource: EmailCliResource, module: ApplicationModule, config
             for thread in threads:
                 print(f"{str(thread.slug):<40} {thread.message_count:>3} msg  "
                       f"{thread.updated_at.isoformat(timespec='seconds')}")
-                print(f"{'':<40} {thread.subject}")
+                print(f"{'':<40} {paint_subject(thread.session, thread.subject)}")
         return 0
 
     if args.command == "deleted":
@@ -229,7 +232,7 @@ def _summary(message: Message) -> dict:
 
 def _print_row(message: Message) -> None:
     content = message.content
-    print(f"* {content.id}  {content.subject}")
+    print(f"* {content.id}  {paint_subject(content.session, content.subject)}")
     print(f"    from {content.sender}  "
           f"{content.sent_at.isoformat(timespec='seconds')}  {content.preview[:70]}")
 

@@ -10,8 +10,8 @@ class DatabaseModule:
     """Owns the driver singleton for the whole process."""
 
     def __init__(self, config: DatabaseConfig):
-        self._connection = sqlite_database_client.start(config.path, config.timeout_seconds)
-        self._client = SqliteDatabaseClient(self._connection)
+        self._factory = sqlite_database_client.start(config.path, config.timeout_seconds)
+        self._client = SqliteDatabaseClient(self._factory)
 
     def provide_database_client(self) -> IDatabaseClient:
         return self._client

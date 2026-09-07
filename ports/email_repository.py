@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from domain.message import (
     DeletedMessage,
+    LiveMessage,
     Message,
     MessageState,
     ReadMessage,
@@ -40,12 +41,12 @@ class IEmailRepository(ABC):
         """Anything in one state, newest first."""
 
     @abstractmethod
-    def mark_read(self, message: ReadMessage) -> ReadMessage:
-        """Move a message into the read table."""
+    def mark_read(self, message: UnreadMessage) -> ReadMessage:
+        """Move it to the read table. `read_at` is stamped by the schema, not the caller."""
 
     @abstractmethod
-    def soft_delete(self, message: DeletedMessage) -> DeletedMessage:
-        """Move a message into the deleted table, stamping deleted_at."""
+    def soft_delete(self, message: LiveMessage) -> DeletedMessage:
+        """Move it to the deleted table. `deleted_at` is stamped by the schema."""
 
     @abstractmethod
     def exists_by_rfc_id(self, rfc_message_id: str) -> bool:
