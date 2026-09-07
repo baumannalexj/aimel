@@ -4,24 +4,39 @@ Hexagonal. Dependencies point inward: `core` knows `ports` and `domain` and noth
 depend on ports; nothing depends on adapters except `application`, which wires them.
 
 ```
-application/
-  main.py                     entrypoint; owns the singletons for the process lifetime
-  module_dependencies/        one module per adapter group
-    application_module.py     composition root
-    database_module.py        owns the driver singleton
-    repository_module.py      provides repositories over the db client
-    client_module.py          provides transport and spool clients
-    core_module.py            provides services
-ports/                        interfaces implemented by adapters, called by core
-domain/                       domain objects
-core/                         business logic; calls ports, never concrete adapters
-adapters/
-  database/                   wraps the driver, holds the connection, executes SQL
-  repository/                 composes SQL, delegates execution to the database adapter
-  client/                     clients for an external API or SDK
-  resource/                   upstream adapters that call into core
-common/                       shared helpers with no domain knowledge
+src/
+  application/
+    main.py                   entrypoint; owns the singletons for the process lifetime
+    cli_request_marshaller.py argv -> typed requests, at the edge
+    module_dependencies/      one module per adapter group
+      application_module.py   composition root
+      database_module.py      owns the driver session factory
+      repository_module.py    provides repositories over the db client
+      client_module.py        provides transport and spool clients
+      core_module.py          provides services
+      common_module.py        naming, session lookup, rendering, colour
+  ports/                      interfaces implemented by adapters, called by core
+  domain/                     domain objects
+  core/                       business logic; calls ports, never concrete adapters
+  adapters/
+    database/                 wraps the driver, holds the session, executes SQL
+    repository/               composes SQL, delegates execution to the database adapter
+    client/                   clients for an external API or SDK
+    resource/                 upstream adapters plus their request objects
+  common/                     shared collaborators with no domain knowledge
+test/                         mirrors src/, plus fixtures/ and helpers/
 ```
+
+`test/` has the same shape as `src/` so a file's tests are findable by path alone. Run with
+`bin/test`.
+
+## Classes, not scripts
+
+Everything is a class instantiated once in the composition root and injected — `ConfigLoader`,
+`NamingPolicy`, `SessionDetector`, `ThreadRenderer`, `SessionColorPalette`, `CliApplication`.
+Module-level functions are avoided because they cannot be substituted without monkeypatching, which
+is what makes the tests below possible: the real class under test, spec'd mocks for its
+collaborators, and no patching anywhere.
 
 ## Composition root
 
@@ -117,19 +132,31 @@ Core only ever sees domain models. Never a dict, never a JSON blob, never a raw 
 
 `@dataclass(frozen=True)` is enough here; Pydantic is fine where real validation earns its weight.
 
-### Where that bites today
-
-`Message` currently carries `read_at: datetime | None` and `deleted_at: datetime | None`, which is
-exactly the nullable-field smell above. Three states means three shapes:
+### The shapes
 
 | Model | Carries |
 |---|---|
-| `UnreadMessage` | no state timestamps |
+| `NewCorrespondence` | no `id`, no `created_at` — not yet persisted |
+| `Correspondence` | `id` (uuid) and `created_at`, both assigned by the schema |
+| `UnreadMessage` | no state timestamp |
 | `ReadMessage` | `read_at`, non-null |
-| `DeletedMessage` | `deleted_at`, non-null |
+| `DeletedMessage` | `deleted_at` and `previous_state`, both non-null |
 
-That also lines up one-to-one with the tables, so the repository maps a shape to a table rather than
-inspecting an enum and hoping the right columns are populated.
+`DeletedMessage` records `previous_state` rather than a nullable `read_at`, because a message deleted
+while unread has no read time and `read_at = ''` is a null wearing a costume.
+
+Primitives do not cross boundaries either. An address is an `Email` value object with an `address`
+field, so validation has somewhere to live as it grows; adapters unwrap it at the very edge when
+writing a bind or a wire header. Request objects are built once by `CliRequestMarshaller` with
+`SessionId`, `ThreadSlug` and `Author` already parsed, so no downstream code re-parses a string.
+
+## Identity: uuid out, primary key in
+
+Every table has both a surrogate `pk INTEGER PRIMARY KEY AUTOINCREMENT` and a
+`uuid TEXT NOT NULL UNIQUE`, defaulted by the schema (SQLite has no `uuid()`, so it is composed from
+`randomblob`). The **primary key never leaves the repository** — domain objects expose the uuid as
+`id`, and it survives every state change because a move carries the original uuid forward rather
+than letting the default generate a new one.
 
 ## Storage: this service owns it
 

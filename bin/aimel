@@ -6,11 +6,11 @@ SETTINGS="${AIMEL_SETTINGS:-$HOME/.config/aimel/settings.json}"
 DEFAULT_MAIL_DIR="$HOME/_claude-email"
 
 if [ -n "${AIMEL_PYTHON:-}" ]; then
-  RUN=(env "PYTHONPATH=$REPO" "$AIMEL_PYTHON")
+  RUN=(env "PYTHONPATH=$REPO/src" "$AIMEL_PYTHON")
 elif command -v uv >/dev/null 2>&1; then
-  RUN=(env "PYTHONPATH=$REPO" uv run --quiet --project "$REPO" python)
+  RUN=(env "PYTHONPATH=$REPO/src" uv run --quiet --project "$REPO" python)
 else
-  RUN=(env "PYTHONPATH=$REPO" python3)
+  RUN=(env "PYTHONPATH=$REPO/src" python3)
 fi
 
 cli() { "${RUN[@]}" -m application.main "$@"; }
