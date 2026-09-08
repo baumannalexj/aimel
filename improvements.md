@@ -1,6 +1,37 @@
-# Feature list
+# Improvement list
 
-Living checklist. `architecture.md` covers *how*; this covers *what*.
+Living checklist. `architecture.md` covers *how*; this covers *what*, and what is still owed.
+
+## Future improvements
+
+Raised in review, not yet done.
+
+- [ ] **Swap the hand-rolled HTTP server for FastAPI.** Decided FastAPI over Flask, deferred — "fast
+      but we should get back to this". `WebServer` is a `BaseHTTPRequestHandler` with hand-written
+      routing, which is exactly what the hex boundary exists to make replaceable: `EmailWebResource`
+      renders and `EmailCliResource` marshals, so a framework only owns routing and serialisation.
+      The request DTOs are already pydantic, so FastAPI gets validation and `/docs` for free.
+      `uv add --group adapters fastapi uvicorn`.
+- [ ] **Ship a `docker-compose.yml` as well as `compose.yml`.** Colima installs the standalone
+      `docker-compose` binary rather than the `docker compose` plugin. Our v5.1.4 standalone does read
+      `compose.yml`, and `DockerComposeRuntime` already prefers that binary, so nothing is broken —
+      but older standalone versions only look for `docker-compose.yml`, and the filename is what
+      people expect. Open question: symlink, rename, or leave it.
+- [ ] **Review comments now resolved, kept for the record**
+      ([requests.py L41-L46 @ e40dbbd](https://github.com/baumannalexj/aimel/blob/e40dbbd68d307af599be62ef4d75893e375cf914/src/adapters/resource/requests.py#L41-L46),
+      [L73](https://github.com/baumannalexj/aimel/blob/e40dbbd68d307af599be62ef4d75893e375cf914/src/adapters/resource/requests.py#L73),
+      [L79](https://github.com/baumannalexj/aimel/blob/e40dbbd68d307af599be62ef4d75893e375cf914/src/adapters/resource/requests.py#L79)):
+      "should be a UUID" and "can this be a UUID" / "make uuid" — done, `session` and `email_id` are
+      required pydantic `UUID` fields with no default. "try to avoid booleans - use Actor enum like
+      HUMAN | CLAUDE" — done as `Actor(HUMAN | AI_AGENT)`. "use an enum like IncludeHistory NONE |
+      ALL" — done. "what's different from html and test?" — `html` is the rendered body, `text` is
+      only the plain-text alternative part and is derived from `html` when omitted; documented in the
+      module docstring. "I think you can also change subject" — deliberately not: the subject is the
+      thread's context, fixed when the thread opens.
+- [ ] **Drop `--text` from the CLI.** Follows from the answer above: it is derived, so the flag earns
+      nothing and invites confusion.
+- [ ] **Require a body.** `html` still defaults to `""`, so an empty email is sendable — the same
+      "should blow up if not provided" argument that fixed the uuid fields.
 
 ## Shipped
 
@@ -77,11 +108,6 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 
 ## Next
 
-- [ ] **Swap the hand-rolled HTTP server for a real framework** (FastAPI or Flask). `WebServer` is a
-      `BaseHTTPRequestHandler` with hand-written routing, which is exactly what the hex boundary
-      exists to make replaceable: `EmailWebResource` renders and `EmailCliResource` marshals, so the
-      framework only owns routing and serialisation. Needs the dependency added, scoped to the
-      `adapters` group.
 
 - [ ] **Turn on `purge_after_drain`.** Deliberately off while Mailpit's UI is the only reader; mail
       currently lives in both stores.
