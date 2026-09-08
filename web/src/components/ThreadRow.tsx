@@ -1,4 +1,6 @@
 import type { ThreadListItem } from '../types/contract'
+import { Card } from './composition/Card'
+import { Clickable } from './composition/Clickable'
 
 interface Props {
   thread: ThreadListItem
@@ -6,21 +8,28 @@ interface Props {
   onOpen?: (thread: ThreadListItem) => void
 }
 
+function accessibleLabel(thread: ThreadListItem): string {
+  const unreadPart = thread.unreadCount > 0 ? `, ${thread.unreadCount} unread` : ''
+  return `${thread.subject}${unreadPart}, session ${thread.sessionShort}, ${thread.emailCount} email(s), updated ${thread.updatedAt}`
+}
+
 export function ThreadRow({ thread, selected, onOpen }: Props) {
   const unread = thread.unreadCount > 0
   return (
-    <li className={selected ? 'thread-row thread-row-selected' : 'thread-row'}>
-      <button type="button" aria-current={selected} onClick={() => onOpen?.(thread)}>
-        {unread ? <strong>{thread.subject}</strong> : thread.subject}
-      </button>{' '}
-      {unread && (
-        <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>
-          {thread.unreadCount}
-        </span>
-      )}{' '}
-      <small className="meta">
-        <span className="chip" style={{ background: thread.sessionColor }}>{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
-      </small>
+    <li>
+      <Clickable onClick={() => onOpen?.(thread)} label={accessibleLabel(thread)} selected={selected}>
+        <Card>
+          {unread ? <strong>{thread.subject}</strong> : thread.subject}
+          {unread && (
+            <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>
+              {thread.unreadCount}
+            </span>
+          )}
+          <small className="meta">
+            <span className="chip" style={{ background: thread.sessionColor }}>{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
+          </small>
+        </Card>
+      </Clickable>
     </li>
   )
 }

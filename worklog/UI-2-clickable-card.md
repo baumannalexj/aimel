@@ -1,6 +1,7 @@
 # UI-2 — click anywhere in the container, by composition
 
-Status: **not started**
+Status: **done** — Clickable/Card style themselves with inline styles off design tokens (no CSS file
+edits); Clickable replicates hover/selected background in JS since inline styles can't do `:hover`.
 
 Today a thread row is only clickable on a `<button>` around its subject. The whole row should be the
 hit target.
