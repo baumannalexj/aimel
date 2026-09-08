@@ -1,43 +1,24 @@
 """Header names in one place.
 
-The transport writes our custom mail headers and the intake client reads them back. They used to
-derive the prefix independently, which is a silent-drift bug waiting to happen: rename the service
-and intake stops recognising its own mail without anything failing loudly.
+The transport writes our custom mail headers and the intake client reads them back. Keeping the
+literal strings here, instead of each side deriving its own, is what stops a silent-drift bug: if
+they ever disagreed, intake would stop recognising its own mail without anything failing loudly.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
 class MailHeaders:
-    """The `X-<Service>-*` names, derived once from the service name."""
-
-    service_name: str
-
-    @property
-    def prefix(self) -> str:
-        return f"X-{self.service_name.title()}"
-
-    @property
-    def session(self) -> str:
-        return f"{self.prefix}-Session"
-
-    @property
-    def thread(self) -> str:
-        return f"{self.prefix}-Thread"
-
-    @property
-    def actor(self) -> str:
-        return f"{self.prefix}-Actor"
+    SESSION = "X-Aimel-Session"
+    THREAD = "X-Aimel-Thread"
+    ACTOR = "X-Aimel-Actor"
 
     # Mailpit turns this into a sidebar filter, so it is its name and not ours.
-    tags: str = "X-Tags"
+    TAGS = "X-Tags"
 
     # Standard names we read off captured mail.
-    in_reply_to: str = "In-Reply-To"
-    references: str = "References"
+    IN_REPLY_TO = "In-Reply-To"
+    REFERENCES = "References"
 
 
 class HttpHeaders:

@@ -16,12 +16,11 @@ class ClientModule:
         self,
         smtp: SmtpConfig,
         mailbox: MailboxConfig,
-        service_name: str,
         compose_file: Path,
         spool_port: int,
     ):
         self._transport = SmtpEmailTransport(smtp)
-        self._mailbox = MailpitMailboxClient(mailbox, service_name)
+        self._mailbox = MailpitMailboxClient(mailbox)
         self._container_runtime = DockerComposeRuntime(compose_file, spool_port)
 
     def provide_email_transport(self) -> IEmailTransport:

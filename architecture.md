@@ -80,8 +80,9 @@ whole point is that core cannot tell what is behind it.
 
 Source refers to the service as `SERVICE`, resolved from `service_name` in config (`aimel`). Do not
 scatter the product name through the code: renaming the service must touch config, not modules. This
-extends to anything derived from it, including mail header names, which render as
-`X-{SERVICE}-Session` rather than a hardcoded literal.
+covers addresses and subjects (`NamingConfig`, `NamingPolicy`). Mail header names are the one
+exception: they are hardcoded constants in `MailHeaders` (`src/common/headers.py`), not derived from
+`service_name`, so a rename never silently detaches the writer's headers from the reader's.
 
 ## Domain north star
 

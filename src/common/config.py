@@ -34,7 +34,6 @@ class DatabaseConfig:
 class SmtpConfig:
     host: str
     port: int
-    service_name: str
 
 
 class DefaultPortOwner(Enum):
@@ -137,7 +136,6 @@ class ConfigLoader:
             smtp=SmtpConfig(
                 host=str(settings["smtp_host"]),
                 port=int(str(settings["smtp_port"])),
-                service_name=service_name,
             ),
             mailbox=MailboxConfig(api_base=f"http://localhost:{web.spool_port}"),
             naming=NamingConfig(

@@ -24,7 +24,7 @@ class ApplicationModule:
             self.database_module.provide_database_client()
         )
         self.client_module = ClientModule(
-            config.smtp, config.mailbox, config.naming.service_name,
+            config.smtp, config.mailbox,
             config.paths.compose_file,
             config.web.spool_port,
         )
