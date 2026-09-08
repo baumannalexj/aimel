@@ -5,6 +5,7 @@ import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 DEFAULTS: dict[str, object] = {
@@ -12,13 +13,13 @@ DEFAULTS: dict[str, object] = {
     "mail_dir": "~/_claude-email",
     "smtp_host": "localhost",
     "smtp_port": 1025,
-    "api_base": "http://localhost:8025",
     "domain": "aimel.com",
     "human_address": "{user}@{domain}",
     "agent_address": "claude-{session8}@{domain}",
     "subject_template": "{title}",
     "max_messages": 5000,
     "purge_after_drain": False,
+    "default_port_owner": "spool",
     "skill_target_dir": "~/.claude/skills/aimel",
 }
 
@@ -34,6 +35,26 @@ class SmtpConfig:
     host: str
     port: int
     service_name: str
+
+
+class DefaultPortOwner(Enum):
+    """Which app answers on 8025. SPOOL is the long-standing experience."""
+
+    SPOOL = "spool"
+    REPLY = "reply"
+
+
+@dataclass(frozen=True)
+class WebConfig:
+    default_port_owner: DefaultPortOwner
+    spool_port: int
+    reply_port: int
+
+    @classmethod
+    def of(cls, owner: DefaultPortOwner) -> "WebConfig":
+        if owner is DefaultPortOwner.REPLY:
+            return cls(owner, spool_port=8027, reply_port=8025)
+        return cls(owner, spool_port=8025, reply_port=8026)
 
 
 @dataclass(frozen=True)
@@ -66,6 +87,7 @@ class AppConfig:
     mailbox: MailboxConfig
     naming: NamingConfig
     paths: PathsConfig
+    web: WebConfig
     purge_after_drain: bool
 
 
@@ -107,6 +129,7 @@ class ConfigLoader:
     def load(self) -> AppConfig:
         settings = self.raw()
         mail_dir = Path(str(settings["mail_dir"])).expanduser()
+        web = WebConfig.of(DefaultPortOwner(str(settings["default_port_owner"])))
         service_name = str(settings["service_name"])
         return AppConfig(
             mail_dir=mail_dir,
@@ -116,7 +139,7 @@ class ConfigLoader:
                 port=int(str(settings["smtp_port"])),
                 service_name=service_name,
             ),
-            mailbox=MailboxConfig(api_base=str(settings["api_base"])),
+            mailbox=MailboxConfig(api_base=f"http://localhost:{web.spool_port}"),
             naming=NamingConfig(
                 service_name=service_name,
                 domain=str(settings["domain"]),
@@ -125,6 +148,7 @@ class ConfigLoader:
                 agent_address=str(settings["agent_address"]),
                 subject_template=str(settings["subject_template"]),
             ),
+            web=web,
             paths=PathsConfig(
                 compose_file=_repo_root() / "compose.yml",
                 skill_source=_repo_root() / "skill" / "SKILL.md",

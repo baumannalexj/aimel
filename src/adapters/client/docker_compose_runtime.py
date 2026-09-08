@@ -18,8 +18,9 @@ class DockerComposeRuntime(IContainerRuntime):
     on machines running Colima and `docker compose` then fails with a baffling flag error.
     """
 
-    def __init__(self, compose_file: Path):
+    def __init__(self, compose_file: Path, spool_port: int):
         self._compose_file = Path(compose_file)
+        self._spool_port = spool_port
 
     def up(self, mail_dir: Path) -> None:
         mail_dir.mkdir(parents=True, exist_ok=True)
@@ -55,7 +56,13 @@ class DockerComposeRuntime(IContainerRuntime):
             raise SystemExit(f"no compose file at {self._compose_file}")
         command = [*self._binary(), "-f", str(self._compose_file), *args]
         completed = subprocess.run(
-            command, env={**os.environ, "AIMEL_MAIL_DIR": str(mail_dir)}, check=False
+            command,
+            env={
+                **os.environ,
+                "AIMEL_MAIL_DIR": str(mail_dir),
+                "AIMEL_HTTP_PORT": str(self._spool_port),
+            },
+            check=False,
         )
         return completed.returncode
 

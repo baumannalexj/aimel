@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% from "components/thread_row.html" import thread_row %}
+{% from "components/notice.html" import notice %}
+{% block body %}
+  {% for row in props.rows %}
+    {{ thread_row(row) }}
+  {% else %}
+    {{ notice("No mail yet.") }}
+  {% endfor %}
+{% endblock %}

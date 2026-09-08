@@ -1,0 +1,5 @@
+{% extends "layout.html" %}
+{% from "components/notice.html" import notice %}
+{% block body %}
+  {{ notice(props.message) }}
+{% endblock %}

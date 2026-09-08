@@ -1,0 +1,6 @@
+{% macro email(props) -%}
+<div class="email {{ props.css_class }}">
+  <div class=who>{{ props.who }} · {{ props.sent_at }} · {{ props.sender }} &rarr; {{ props.recipient }}</div>
+  <div class=body>{{ props.body }}</div>
+</div>
+{%- endmacro %}

@@ -43,7 +43,9 @@ class CliApplication:
                 return self._status(config)
             if args.command == "serve":
                 server = WebServer(
-                    module.provide_email_web_resource(), host=args.host, port=args.port
+                    module.provide_email_web_resource(),
+                    host=args.host,
+                    port=args.port or config.web.reply_port,
                 )
                 print(f"reply to your agents at {server.url}  (ctrl-c to stop)")
                 server.serve_forever()
@@ -115,7 +117,7 @@ class CliApplication:
         sub.add_parser("status", help="resolved config and health")
 
         serve = sub.add_parser("serve", help="the reply-capable web view")
-        serve.add_argument("--port", type=int, default=8026)
+        serve.add_argument("--port", type=int, default=None)
         serve.add_argument("--host", default="127.0.0.1")
 
         settings = sub.add_parser("settings", help="show or change saved settings")

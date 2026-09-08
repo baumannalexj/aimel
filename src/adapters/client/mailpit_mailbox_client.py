@@ -7,6 +7,7 @@ import urllib.request
 from typing import Any
 
 from common.config import MailboxConfig
+from common.headers import MailHeaders
 from ports.mailbox_client import CapturedMessage, IMailboxClient
 
 
@@ -15,7 +16,7 @@ class MailpitMailboxClient(IMailboxClient):
 
     def __init__(self, config: MailboxConfig, service_name: str = "aimel"):
         self._base = config.api_base.rstrip("/")
-        self._prefix = f"X-{service_name.title()}"
+        self._headers = MailHeaders(service_name)
 
     def capture(self, limit: int = 200) -> list[CapturedMessage]:
         listing = self._call("/api/v1/messages", params={"limit": limit})
@@ -49,11 +50,11 @@ class MailpitMailboxClient(IMailboxClient):
             body_text=detail.get("Text") or "",
             received_at=detail.get("Date", ""),
             headers={
-                "session": _first(raw_headers, f"{self._prefix}-Session"),
-                "actor": _first(raw_headers, f"{self._prefix}-Actor"),
+                "session": _first(raw_headers, self._headers.session),
+                "actor": _first(raw_headers, self._headers.actor),
                 "thread": _first(raw_headers, f"{self._prefix}-Thread"),
-                "in_reply_to": _first(raw_headers, "In-Reply-To"),
-                "references": _first(raw_headers, "References"),
+                "in_reply_to": _first(raw_headers, self._headers.in_reply_to),
+                "references": _first(raw_headers, self._headers.references),
             },
         )
 
