@@ -6,6 +6,21 @@ Living checklist. `architecture.md` covers *how*; this covers *what*, and what i
 
 Raised in review, not yet done.
 
+- [ ] **Partial rendering, then optionally a SPA.** Today every interaction is a full page render:
+      reply is `POST -> 303 -> GET`, so the whole thread re-renders to add one email. Two steps, and
+      the first is most of the value:
+      - **Fragment SSR.** Routes return a rendered component rather than a page, and the client swaps
+        it in. Still no client-side models and no JSON API — the server keeps owning HTML, so the
+        component tree and props dataclasses are reused as they are. htmx is the obvious vehicle; the
+        cost is a second render path per component and a JS dependency.
+      - **A real SPA.** JSON endpoints, client-side models, a JS client (`repository/emailClient.js`
+        wrapping fetch with one place for error handling), client routing. This is what makes
+        `web/models/` meaningful — until then there is nothing for it to hold, because the server
+        renders and the browser never owns state.
+
+      Worth noting the ordering: the resource already separates "map domain to props" from "render",
+      so fragment SSR is a routing change rather than a rewrite. A SPA additionally needs the response
+      shapes designed as an API, which is a bigger commitment than it looks.
 - [ ] **Make the schema relational: fetch by thread id and join.** Today each state table holds a
       full copy of every column, so reading a thread is a `UNION ALL` of three wide selects and
       "get the emails on this thread" is not a join at all. The relational shape keeps the
