@@ -1,6 +1,6 @@
 # UI-3a — pane header
 
-Status: **not started**
+Status: **done** — `PaneHeaderProps` doesn't carry `sessionColor`, so the full-uuid chip uses `--color-accent-muted` (the same token the unread-count chip uses) rather than the per-session hash; exact hue match would need the prop signature reopened.
 
 Fill `web/src/components/emailpane/PaneHeader.tsx`. Props are settled; own that file only.
 

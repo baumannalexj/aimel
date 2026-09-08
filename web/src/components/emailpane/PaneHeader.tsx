@@ -12,6 +12,13 @@ export class PaneHeaderProps {
   }
 }
 
-export function PaneHeader(_props: PaneHeaderProps): ReactElement {
-  throw new Error('PaneHeader is not implemented yet')
+export function PaneHeader({ sessionUuid, subject }: PaneHeaderProps): ReactElement {
+  return (
+    <div>
+      <h2>{subject}</h2>
+      <small className="meta">
+        <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>{sessionUuid}</span>
+      </small>
+    </div>
+  )
 }
