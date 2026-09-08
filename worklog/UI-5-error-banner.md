@@ -1,6 +1,10 @@
 # UI-5 — error banner with the stack
 
-Status: **not started**
+Status: **done** — after `DisplayableError` grew a `cause?: unknown` field, `ErrorBanner` takes `cause`
+instead of separate `status`/`stack` and narrows it itself (`ApiCallFailed` for status, `Error` for
+`.stack`, `String(cause)` as a last resort for anything else). Wired the one-line call site in
+`ErrorSurface` and added `cause: error` to `ErrorBoundary`'s report so a render-time crash also gets a
+stack, not just a message.
 
 MVP error handling is deliberately blunt: the repository throws, nothing catches on the way up, the
 root container shows a banner. Own `web/src/app/errors/ErrorBanner.tsx` and its styles.
