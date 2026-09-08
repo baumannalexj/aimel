@@ -171,12 +171,16 @@ SELECT_ALL_THREADS = """
     ORDER BY updated_at DESC
     LIMIT :limit"""
 
+# unread_count is scoped to mail addressed to this mailbox. Unread is per-recipient: the agent's
+# poll queue and the human's badge read the same rows, so counting globally makes your own reply
+# notify you.
 SELECT_THREADS_FOR_MAILBOX = """
     SELECT session,
            thread_uuid,
            subject,
            COUNT(*)                                   AS count,
-           SUM(CASE WHEN state = 'unread' THEN 1 ELSE 0 END) AS unread_count,
+           SUM(CASE WHEN state = 'unread' AND recipient = :recipient THEN 1 ELSE 0 END)
+                                                       AS unread_count,
            MAX(sent_at)                                AS updated_at
     FROM (
         SELECT session, thread_uuid, subject, sent_at, recipient, 'unread' AS state FROM unread
