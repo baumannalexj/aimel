@@ -1,6 +1,9 @@
 # UI-5 — error banner with the stack
 
-Status: **not started**
+Status: **done** — `status`/`stack` are optional props on `ErrorBanner`, defaulting to omitted, so the
+existing `ErrorSurface` call site (`message`, `onDismiss` only) keeps compiling untouched; wiring
+`ApiCallFailed.status`/`.stack` through `ErrorSurface`/`DisplayableError` for the real app is left for
+whoever owns that integration.
 
 MVP error handling is deliberately blunt: the repository throws, nothing catches on the way up, the
 root container shows a banner. Own `web/src/app/errors/ErrorBanner.tsx` and its styles.

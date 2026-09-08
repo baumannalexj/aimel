@@ -131,7 +131,7 @@
 
 .error-banner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -139,6 +139,36 @@
   border-radius: var(--radius-md);
   background: var(--color-danger-bg);
   color: var(--color-danger-text);
+}
+
+.error-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.error-banner-status {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.error-banner-stack-toggle {
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+
+.error-banner-trace {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  max-height: 16rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
 }
 
 /* --- Error toast: a transient failure (one action failed), clears itself --- */
