@@ -3,6 +3,8 @@
 // box opens further down the stack -- one piece of state, two places on screen.
 
 import { useState } from 'react'
+import { ErrorSeverity } from '../../app/errors/ErrorSeverity'
+import { useErrorReporter } from '../../app/errors/ErrorSurface'
 import type { EmailThread } from '../../domain/EmailThread'
 import type { EmailRepository } from '../../repository/EmailRepository'
 import { MessageStack, MessageStackProps } from './MessageStack'
@@ -19,12 +21,25 @@ interface Props {
 
 export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
   const [replying, setReplying] = useState(false)
+  const { reportError } = useErrorReporter()
   const newest = thread.newest()
 
+  // A rejected promise inside an event handler never reaches an ErrorBoundary -- React only catches
+  // throws during render. Without this the banner would never fire for the most likely failure there
+  // is, a reply that didn't send. Rethrown so ReplyBox still knows not to clear the user's text.
   const send = async (body: string) => {
     if (!newest) return
-    onThreadReloaded(await repository.replyTo(newest.emailUuid, body))
-    setReplying(false)
+    try {
+      onThreadReloaded(await repository.replyTo(newest.emailUuid, body))
+      setReplying(false)
+    } catch (thrown) {
+      reportError({
+        message: thrown instanceof Error ? thrown.message : String(thrown),
+        severity: ErrorSeverity.Blocking,
+        cause: thrown,
+      })
+      throw thrown
+    }
   }
 
   const replyBox = (
