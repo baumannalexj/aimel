@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+from common.session_color import SessionColorPalette
 from domain.message import Message
 from domain.thread import ThreadSummary
+
+COLORS = SessionColorPalette()
 
 
 class _Payload(BaseModel):
@@ -19,6 +22,7 @@ class ThreadListItem(_Payload):
     latestEmailUuid: str
     session: str
     sessionShort: str
+    sessionColor: str
     updatedAt: str
 
     @classmethod
@@ -30,6 +34,7 @@ class ThreadListItem(_Payload):
             latestEmailUuid=thread.latest_email_id,
             session=str(thread.session),
             sessionShort=thread.session.short,
+            sessionColor=COLORS.color_for(thread.session),
             updatedAt=thread.updated_at.isoformat(timespec="seconds"),
         )
 
@@ -64,6 +69,7 @@ class ThreadDetail(_Payload):
     subject: str
     session: str
     sessionShort: str
+    sessionColor: str
     emails: list[EmailItem]
 
     @classmethod
@@ -75,6 +81,7 @@ class ThreadDetail(_Payload):
             subject=opener.subject.text,
             session=str(opener.session),
             sessionShort=opener.session.short,
+            sessionColor=COLORS.color_for(opener.session),
             emails=[EmailItem.of(message) for message in messages],
         )
 

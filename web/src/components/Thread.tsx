@@ -2,13 +2,15 @@ import { useState } from 'react'
 import type { EmailItem, ThreadDetail } from '../types/contract'
 import { EmailDetail } from './EmailDetail'
 import { EmailRow } from './EmailRow'
+import { ReplyForm } from './ReplyForm'
 
 interface Props {
   thread: ThreadDetail
   onBack: () => void
+  onReplied: (newEmailUuid: string) => void
 }
 
-export function Thread({ thread, onBack }: Props) {
+export function Thread({ thread, onBack, onReplied }: Props) {
   const [openEmail, setOpenEmail] = useState<EmailItem | null>(null)
 
   return (
@@ -18,7 +20,7 @@ export function Thread({ thread, onBack }: Props) {
       </button>
       <h2>{thread.subject}</h2>
       <small className="meta">
-        <span className="chip">{thread.sessionShort}</span> · {thread.emails.length} email(s)
+        <span className="chip" style={{ background: thread.sessionColor }}>{thread.sessionShort}</span> · {thread.emails.length} email(s)
       </small>
 
       <ul>
@@ -33,6 +35,7 @@ export function Thread({ thread, onBack }: Props) {
       </ul>
 
       {openEmail ? <EmailDetail email={openEmail} /> : <p className="notice">Pick an email to read it.</p>}
+      <ReplyForm emailUuid={thread.emails[0].emailUuid} onReplied={onReplied} />
     </section>
   )
 }

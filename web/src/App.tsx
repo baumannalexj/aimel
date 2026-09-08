@@ -16,6 +16,13 @@ export default function App() {
     aimelClient.threads().then(setThreads).catch((cause) => setError(String(cause)))
   }, [])
 
+  function reload(emailUuid: string) {
+    aimelClient
+      .thread(emailUuid)
+      .then(setOpen)
+      .catch((cause) => setError(String(cause)))
+  }
+
   function openThread(thread: ThreadListItem) {
     setError('')
     aimelClient
@@ -34,7 +41,11 @@ export default function App() {
       {error ? (
         <p role="alert" className="notice">{error}</p>
       ) : open ? (
-        <Thread thread={open} onBack={() => setOpen(null)} />
+        <Thread
+            thread={open}
+            onBack={() => setOpen(null)}
+            onReplied={(emailUuid) => reload(emailUuid)}
+          />
       ) : (
         <>
           <h1>Inbox</h1>

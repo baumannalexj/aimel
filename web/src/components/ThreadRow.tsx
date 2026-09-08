@@ -12,7 +12,7 @@ export function ThreadRow({ thread, onOpen }: Props) {
         {thread.subject}
       </button>{' '}
       <small className="meta">
-        <span className="chip">{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
+        <span className="chip" style={{ background: thread.sessionColor }}>{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
       </small>
     </li>
   )

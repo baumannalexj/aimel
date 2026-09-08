@@ -7,6 +7,7 @@ export interface ThreadListItem {
   latestEmailUuid: string
   session: string
   sessionShort: string
+  sessionColor: string
   updatedAt: string
 }
 
@@ -26,6 +27,7 @@ export interface ThreadDetail {
   subject: string
   session: string
   sessionShort: string
+  sessionColor: string
   emails: EmailItem[]
 }
 
