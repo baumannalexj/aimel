@@ -28,6 +28,14 @@
   --color-notice-border: light-dark(#e8c46a, #6b5423);
   --color-notice-text: light-dark(#6b4d05, #f0cf82);
 
+  /* --- Danger (errors the root container surfaces via a banner or toast) ---
+     Added for the ErrorBanner/Toast pair in app/errors/ — the style guide had deliberately left
+     this out because nothing rendered an error yet. Same light-bg/dark-text structure as notice,
+     shifted to red so a real failure never reads as the same "heads up" as a notice. */
+  --color-danger-bg: light-dark(#fdeded, #3a1616);
+  --color-danger-border: light-dark(#e2a0a0, #7a3333);
+  --color-danger-text: light-dark(#8a1f1f, #f2a8a8);
+
   /* --- Spacing scale (4px base grid) --- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
