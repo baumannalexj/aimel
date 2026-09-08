@@ -28,7 +28,7 @@ class SqliteEmailRepositorySoftDeleteTest(unittest.TestCase):
         self.assertEqual(len(statements), 2)
         # Compared against the constants, so reformatting the SQL cannot break this test.
         self.assertEqual(statements[0], sql.DELETE_BY_UUID[MessageState.READ])
-        self.assertEqual(statements[1], sql.INSERT_MOVED_DELETED)
+        self.assertEqual(statements[1], sql.INSERT_DELETED)
 
         # deleted_at is absent from the insert because the schema stamps it.
         self.assertNotIn("deleted_at", statements[1])

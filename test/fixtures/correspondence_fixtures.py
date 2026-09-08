@@ -56,9 +56,9 @@ class CorrespondenceFixtures:
 
     @classmethod
     def row(cls, state: MessageState, **overrides: Any) -> dict[str, Any]:
+        """Shaped like a row out of the emails/threads join, state columns included regardless."""
         content = cls.content()
         row: dict[str, Any] = {
-            "pk": 1,
             "uuid": content.id,
             "created_at": "2026-09-07T22:16:00Z",
             "session": str(content.session),
@@ -73,6 +73,10 @@ class CorrespondenceFixtures:
             "body_html": content.body_html.markup,
             "body_text": content.body_text,
             "sent_at": "2026-09-07T22:15:00Z",
+            "state": state.value,
+            "read_at": None,
+            "deleted_at": None,
+            "previous_state": None,
         }
         if state is MessageState.READ:
             row["read_at"] = "2026-09-07T22:30:00Z"
