@@ -43,6 +43,7 @@ class ThreadListItem(_Payload):
 
 class EmailItem(_Payload):
     emailUuid: str
+    threadUuid: str
     author: str
     state: str
     sentAt: str
@@ -56,6 +57,7 @@ class EmailItem(_Payload):
         content = message.content
         return cls(
             emailUuid=content.id,
+            threadUuid=content.thread_uuid,
             author=content.author.value,
             state=message.state.value,
             sentAt=content.sent_at.isoformat(timespec="seconds"),

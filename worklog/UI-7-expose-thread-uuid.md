@@ -1,6 +1,6 @@
 # UI-7 — surface the thread for an email
 
-Status: **not started**
+Status: **done** — `GET /api/emails/<uuid>` reuses `EmailApiResource.thread()`/`InboxService.history()` verbatim (same 404-via-`EmailNotFound` mapping the `/thread` route already had), so `email_sql.py` needed no changes at all.
 
 Deep links need `/emails/<emailUuid>` to resolve to a thread. Backend, kept small because the UI is
 the priority.
