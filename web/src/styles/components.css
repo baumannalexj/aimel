@@ -222,6 +222,8 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
 /* --- Message stack: newest email on top, each older one nested a level deeper ---
    The indent comes from --depth (set inline per item, capped so five levels of nesting
    never push the body past the pane's edge); the left border carries the "still nested"
