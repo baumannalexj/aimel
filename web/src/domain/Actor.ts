@@ -1,18 +1,14 @@
-// A real `enum` isn't erasable syntax, so this is the object-literal replacement.
-export const Actor = {
-  Human: 'human',
-  AiAgent: 'ai_agent',
-} as const
-
-export type Actor = (typeof Actor)[keyof typeof Actor]
+// Values are the wire values the python api sends, so parsing is a lookup rather than a mapping.
+export enum Actor {
+  Human = 'human',
+  AiAgent = 'ai_agent',
+}
 
 export function parseActor(value: string): Actor {
-  switch (value) {
-    case Actor.Human:
-      return Actor.Human
-    case Actor.AiAgent:
-      return Actor.AiAgent
-    default:
-      throw new Error(`unexpected actor from api: "${value}"`)
-  }
+  if (isActor(value)) return value
+  throw new Error(`unexpected actor from api: "${value}"`)
+}
+
+function isActor(value: string): value is Actor {
+  return Object.values<string>(Actor).includes(value)
 }

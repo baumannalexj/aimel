@@ -1,68 +1,24 @@
 /**
- * The repository seam, as a no-op.
+ * The repository seam.
  *
- * Deliberately implementation-free so both sides can be built at once: views code against
- * `IEmailRepository`, the real implementation arrives behind it, and `NoopEmailRepository` keeps the
- * app compiling and renderable in between.
+ * Views code against `IEmailRepository`; `EmailRepository` is the real one and
+ * `NoopEmailRepository` keeps a component renderable in isolation without a running api.
  *
- * The view types here are STRUCTURAL on purpose. The domain classes in `web/src/domain/` will satisfy
- * them, so nothing has to import a class that does not exist yet. When domain lands, these become
- * `type ThreadSummaryView = ThreadSummary` and so on, or disappear.
+ * The structural view types this file used to declare are gone -- the domain classes they stood in
+ * for now exist, so the interface names them directly.
  */
 
-// `enum` is rejected by erasableSyntaxOnly because it emits runtime code, so this is the erasable
-// equivalent: a frozen const object plus a union type of its values. Same call sites, same
-// exhaustiveness in a switch.
-export const EmailStateView = {
-  Unread: 'unread',
-  Read: 'read',
-  Deleted: 'deleted',
-} as const
-export type EmailStateView = (typeof EmailStateView)[keyof typeof EmailStateView]
-
-export const ActorView = {
-  Human: 'human',
-  AiAgent: 'ai_agent',
-} as const
-export type ActorView = (typeof ActorView)[keyof typeof ActorView]
-
-export interface EmailView {
-  emailUuid: string
-  actor: ActorView
-  state: EmailStateView
-  sentAt: string
-  sender: string
-  recipient: string
-  bodyHtml: string
-  preview: string
-}
-
-export interface ThreadSummaryView {
-  threadUuid: string
-  subject: string
-  sessionShort: string
-  sessionColor: string
-  emailCount: number
-  unreadCount: number
-  latestEmailUuid: string
-  updatedAt: string
-}
-
-export interface EmailThreadView {
-  threadUuid: string
-  subject: string
-  sessionShort: string
-  sessionColor: string
-  emails: EmailView[]
-}
+import type { Email } from '../domain/Email'
+import type { EmailThread } from '../domain/EmailThread'
+import type { ThreadSummary } from '../domain/ThreadSummary'
 
 /** One method per UI use case, named for the use case rather than the endpoint. */
 export interface IEmailRepository {
-  listInbox(): Promise<ThreadSummaryView[]>
-  openThread(emailUuid: string): Promise<EmailThreadView>
+  listInbox(): Promise<ThreadSummary[]>
+  openThread(emailUuid: string): Promise<EmailThread>
   /** Returns the reloaded thread, so a caller never has to re-fetch to see its own reply. */
-  replyTo(emailUuid: string, body: string): Promise<EmailThreadView>
-  markRead(emailUuid: string): Promise<EmailView>
+  replyTo(emailUuid: string, body: string): Promise<EmailThread>
+  markRead(emailUuid: string): Promise<Email>
 }
 
 export class NotImplementedYet extends Error {
@@ -72,21 +28,21 @@ export class NotImplementedYet extends Error {
   }
 }
 
-/** Keeps the app compiling and the views renderable while the real one is written. */
+/** For rendering a component without an api behind it. */
 export class NoopEmailRepository implements IEmailRepository {
-  async listInbox(): Promise<ThreadSummaryView[]> {
+  async listInbox(): Promise<ThreadSummary[]> {
     return []
   }
 
-  async openThread(): Promise<EmailThreadView> {
+  async openThread(): Promise<EmailThread> {
     throw new NotImplementedYet('openThread')
   }
 
-  async replyTo(): Promise<EmailThreadView> {
+  async replyTo(): Promise<EmailThread> {
     throw new NotImplementedYet('replyTo')
   }
 
-  async markRead(): Promise<EmailView> {
+  async markRead(): Promise<Email> {
     throw new NotImplementedYet('markRead')
   }
 }

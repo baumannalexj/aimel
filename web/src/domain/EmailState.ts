@@ -1,21 +1,15 @@
-// A real `enum` isn't erasable syntax, so this is the object-literal replacement.
-export const EmailState = {
-  Unread: 'unread',
-  Read: 'read',
-  Deleted: 'deleted',
-} as const
-
-export type EmailState = (typeof EmailState)[keyof typeof EmailState]
+// Values are the wire values the python api sends, so parsing is a lookup rather than a mapping.
+export enum EmailState {
+  Unread = 'unread',
+  Read = 'read',
+  Deleted = 'deleted',
+}
 
 export function parseEmailState(value: string): EmailState {
-  switch (value) {
-    case EmailState.Unread:
-      return EmailState.Unread
-    case EmailState.Read:
-      return EmailState.Read
-    case EmailState.Deleted:
-      return EmailState.Deleted
-    default:
-      throw new Error(`unexpected email state from api: "${value}"`)
-  }
+  if (isEmailState(value)) return value
+  throw new Error(`unexpected email state from api: "${value}"`)
+}
+
+function isEmailState(value: string): value is EmailState {
+  return Object.values<string>(EmailState).includes(value)
 }
