@@ -7,15 +7,15 @@ import urllib.request
 from typing import Any
 
 from common.config import MailboxConfig
+from common.headers import MailHeaders
 from ports.mailbox_client import CapturedMessage, IMailboxClient
 
 
 class MailpitMailboxClient(IMailboxClient):
     """Reads the Mailpit intake spool over its REST API."""
 
-    def __init__(self, config: MailboxConfig, service_name: str = "aimel"):
+    def __init__(self, config: MailboxConfig):
         self._base = config.api_base.rstrip("/")
-        self._prefix = f"X-{service_name.title()}"
 
     def capture(self, limit: int = 200) -> list[CapturedMessage]:
         listing = self._call("/api/v1/messages", params={"limit": limit})
@@ -49,11 +49,11 @@ class MailpitMailboxClient(IMailboxClient):
             body_text=detail.get("Text") or "",
             received_at=detail.get("Date", ""),
             headers={
-                "session": _first(raw_headers, f"{self._prefix}-Session"),
-                "actor": _first(raw_headers, f"{self._prefix}-Actor"),
-                "thread": _first(raw_headers, f"{self._prefix}-Thread"),
-                "in_reply_to": _first(raw_headers, "In-Reply-To"),
-                "references": _first(raw_headers, "References"),
+                "session": _first(raw_headers, MailHeaders.SESSION),
+                "actor": _first(raw_headers, MailHeaders.ACTOR),
+                "thread": _first(raw_headers, MailHeaders.THREAD),
+                "in_reply_to": _first(raw_headers, MailHeaders.IN_REPLY_TO),
+                "references": _first(raw_headers, MailHeaders.REFERENCES),
             },
         )
 

@@ -13,7 +13,7 @@ git clone git@github.com:baumannalexj/aimel.git && cd aimel
 uv sync                      # installs the project and its groups
 uv run aimel up              # prompts for the mail database dir, remembers the answer
 uv run aimel install-skill    # drops the agent contract in ~/.claude/skills/aimel
-uv run aimel serve            # the reply client, http://127.0.0.1:8026
+uv run aimel serve            # the reply client, http://localhost:8025
 ```
 
 From anywhere else, point `uv` at the project — it keeps your working directory, which matters
@@ -26,8 +26,8 @@ uv run --project ~/sideprojects/aimel aimel poll
 | Port | Use |
 |---|---|
 | `1025` | SMTP — everything is sent here |
-| `8025` | Mailpit viewer, the raw intake spool |
-| `8026` | `aimel serve` — threads collapsed, and the only place you can reply in a browser |
+| `8025` | `aimel serve` — the reply client, threads collapsed. This is the one you open. |
+| `8027` | Mailpit viewer and REST API — the raw intake spool, only needed by `drain` |
 
 ## Threads are anchored to emails
 

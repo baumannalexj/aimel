@@ -1,0 +1,7 @@
+{% from "components/chip.html" import chip %}
+{% macro thread_row(props) -%}
+<a class=thread href="/email/{{ props.latest_email_id }}">
+  <div class=subject>{{ props.subject }}</div>
+  <div class=meta>{{ chip(props.chip) }} {{ props.email_count }} email(s) · {{ props.updated_at }}</div>
+</a>
+{%- endmacro %}

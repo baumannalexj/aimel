@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.email_web_resource import EmailWebResource
+from adapters.resource.session_directory_resource import SessionDirectoryApiResource
 from application.cli_request_marshaller import CliRequestMarshaller
-from application.module_dependencies.client_module import ClientModule
-from application.module_dependencies.common_module import CommonModule
+from application.module_dependencies.client_module import ClientModule, ClientModuleConfig
+from application.module_dependencies.common_module import CommonModule, CommonModuleConfig
 from application.module_dependencies.core_module import CoreModule
 from application.module_dependencies.database_module import DatabaseModule
 from application.module_dependencies.repository_module import RepositoryModule
@@ -18,14 +20,17 @@ class ApplicationModule:
 
     def __init__(self, config: AppConfig):
         self.config = config
-        self.common_module = CommonModule(config.naming, config.paths)
+        self.common_module = CommonModule(
+            CommonModuleConfig(naming=config.naming, skill=config.skill)
+        )
         self.database_module = DatabaseModule(config.database)
         self.repository_module = RepositoryModule(
             self.database_module.provide_database_client()
         )
         self.client_module = ClientModule(
-            config.smtp, config.mailbox, config.naming.service_name,
-            config.paths.compose_file,
+            ClientModuleConfig(
+                smtp=config.smtp, mailbox=config.mailbox, spool_port=config.web.spool_port
+            )
         )
         self.core_module = CoreModule(
             self.repository_module.provide_email_repository(),
@@ -37,6 +42,13 @@ class ApplicationModule:
             self.core_module.provide_inbox_service(),
             self.common_module.provide_naming_policy(),
         )
+        self._email_api_resource = EmailApiResource(
+            self.core_module.provide_inbox_service(),
+            self.common_module.provide_naming_policy(),
+        )
+        self._session_directory_resource = SessionDirectoryApiResource(
+            self.common_module.provide_session_directory()
+        )
         self._cli_request_marshaller = CliRequestMarshaller(
             self.common_module.provide_session_detector()
         )
@@ -45,7 +57,14 @@ class ApplicationModule:
             self.common_module.provide_naming_policy(),
             self.common_module.provide_session_detector(),
             self.common_module.provide_session_colors(),
+            self.common_module.provide_feature_flags(),
         )
+
+    def provide_email_api_resource(self) -> EmailApiResource:
+        return self._email_api_resource
+
+    def provide_session_directory_resource(self) -> SessionDirectoryApiResource:
+        return self._session_directory_resource
 
     def provide_email_web_resource(self) -> EmailWebResource:
         return self._email_web_resource

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from common.datetime_utils import parse_or_now
 from common.thread_renderer import ThreadRenderer
+from domain.errors import EmailAlreadyDeleted, EmailNotFound
 from domain.commands import (
     EmailDelete,
     EmailReply,
@@ -118,7 +119,7 @@ class InboxService:
         if isinstance(message, ReadMessage):
             return message
         if isinstance(message, DeletedMessage):
-            raise ValueError(f"email is deleted: {email_id}")
+            raise EmailAlreadyDeleted(email_id)
         return self._repository.mark_read(message)
 
     def delete(self, command: EmailDelete) -> DeletedMessage:
@@ -132,6 +133,14 @@ class InboxService:
 
     def threads(self, session: SessionId) -> list[ThreadSummary]:
         return self._repository.threads(session)
+
+    def all_threads(self, limit: int = 200) -> list[ThreadSummary]:
+        """Every agent's threads, so one inbox can span sessions."""
+        return self._repository.all_threads(limit=limit)
+
+    def threads_for_mailbox(self, recipient: Email, limit: int = 200) -> list[ThreadSummary]:
+        """One mailbox's inbox — threads it was ever addressed on, not just latest."""
+        return self._repository.threads_for_mailbox(recipient, limit=limit)
 
     def deleted(self, limit: int = 50) -> list[Message]:
         return self._repository.list_by_state(MessageState.DELETED, limit=limit)
@@ -163,7 +172,7 @@ class InboxService:
     def _require(self, email_id: str) -> Message:
         message = self._repository.find(email_id)
         if message is None:
-            raise ValueError(f"no such email: {email_id}")
+            raise EmailNotFound(email_id)
         return message
 
     def _from_capture(self, captured: CapturedMessage) -> SentEmail:

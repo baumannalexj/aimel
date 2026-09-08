@@ -5,6 +5,7 @@ from typing import Any
 from adapters.repository.sql import email_sql as sql
 from common.datetime_utils import from_iso8601_string, to_iso8601_string
 from domain.commands import SentEmail
+from domain.errors import EmailNotFound
 from domain.message import (
     Actor,
     Correspondence,
@@ -76,7 +77,7 @@ class SqliteEmailRepository(IEmailRepository):
     def _thread_uuid_of(self, email_id: str) -> str:
         rows = self._db.query(sql.SELECT_THREAD_UUID_BY_EMAIL, {"email_id": email_id})
         if not rows:
-            raise ValueError(f"cannot reply to an email that does not exist: {email_id}")
+            raise EmailNotFound(email_id)
         return rows[0]["thread_uuid"]
 
     def _reload(self, uuid: str, state: MessageState) -> Any:
@@ -118,23 +119,38 @@ class SqliteEmailRepository(IEmailRepository):
             messages.extend(_to_message(row, state) for row in rows)
         return sorted(messages, key=lambda m: m.content.sent_at, reverse=True)
 
+    def all_threads(self, limit: int = 200) -> list[ThreadSummary]:
+        rows = self._db.query(sql.SELECT_ALL_THREADS, {"limit": limit})
+        return [self._summary(SessionId(row["session"]), row) for row in rows]
+
+    def threads_for_mailbox(self, recipient: Email, limit: int = 200) -> list[ThreadSummary]:
+        rows = self._db.query(
+            sql.SELECT_THREADS_FOR_MAILBOX, {"recipient": recipient.address, "limit": limit}
+        )
+        return [self._summary(SessionId(row["session"]), row) for row in rows]
+
     def threads(self, session: SessionId) -> list[ThreadSummary]:
         summaries = []
         for row in self._db.query(sql.SELECT_THREADS_FOR_SESSION, {"session": str(session)}):
             latest = self._db.query(
                 sql.SELECT_LATEST_EMAIL_IN_THREAD, {"thread_uuid": row["thread_uuid"]}
             )
-            summaries.append(
-                ThreadSummary(
-                    session=session,
-                    thread_uuid=row["thread_uuid"],
-                    subject=EmailSubject(row["subject"]),
-                    message_count=row["count"],
-                    latest_email_id=latest[0]["uuid"] if latest else "",
-                    updated_at=from_iso8601_string(row["updated_at"], "updated_at"),
-                )
-            )
+            summaries.append(self._summary(session, row))
         return summaries
+
+    def _summary(self, session: SessionId, row: Row) -> ThreadSummary:
+        latest = self._db.query(
+            sql.SELECT_LATEST_EMAIL_IN_THREAD, {"thread_uuid": row["thread_uuid"]}
+        )
+        return ThreadSummary(
+            session=session,
+            thread_uuid=row["thread_uuid"],
+            subject=EmailSubject(row["subject"]),
+            message_count=row["count"],
+            unread_count=row["unread_count"],
+            latest_email_id=latest[0]["uuid"] if latest else "",
+            updated_at=from_iso8601_string(row["updated_at"], "updated_at"),
+        )
 
 
 def _content_binds(sent: SentEmail | Correspondence) -> dict[str, Any]:

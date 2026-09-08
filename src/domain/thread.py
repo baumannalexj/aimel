@@ -15,5 +15,6 @@ class ThreadSummary(DomainModel):
     thread_uuid: str
     subject: EmailSubject
     message_count: int
+    unread_count: int
     latest_email_id: str
     updated_at: datetime

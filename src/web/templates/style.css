@@ -1,0 +1,26 @@
+:root { color-scheme: light dark; }
+body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; padding: 2rem;
+       max-width: 52rem; }
+a { color: inherit; }
+h1 { font-size: 1.1rem; letter-spacing: .04em; text-transform: uppercase; opacity: .55;
+     margin: 0 0 1.5rem; }
+.thread { display: block; text-decoration: none; padding: .9rem 0;
+          border-bottom: 1px solid color-mix(in oklab, currentColor 15%, transparent); }
+.thread:hover { background: color-mix(in oklab, currentColor 5%, transparent); }
+.subject { font-weight: 600; }
+.meta { font-size: .82rem; opacity: .6; }
+.chip { font-family: ui-monospace, monospace; font-size: .78rem; padding: .1rem .4rem;
+        border-radius: .35rem; color: #111; }
+.email { border-left: 3px solid color-mix(in oklab, currentColor 20%, transparent);
+         padding: .2rem 0 .2rem 1rem; margin: 1.4rem 0; }
+.email.human { border-left-color: #44BB99; }
+.who { font-size: .8rem; opacity: .6; margin-bottom: .3rem; }
+.body details { margin-top: .8rem; opacity: .75; }
+textarea { width: 100%; min-height: 7rem; font: inherit; padding: .7rem; border-radius: .4rem;
+           border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+           background: transparent; color: inherit; }
+button { margin-top: .6rem; font: inherit; padding: .5rem 1.1rem; border-radius: .4rem;
+         border: 1px solid color-mix(in oklab, currentColor 30%, transparent);
+         background: transparent; color: inherit; cursor: pointer; }
+button:hover { background: color-mix(in oklab, currentColor 10%, transparent); }
+.hint { font-size: .8rem; opacity: .55; margin-top: .4rem; }

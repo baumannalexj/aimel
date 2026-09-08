@@ -1,0 +1,7 @@
+{% macro reply_form(newest_email_id) -%}
+<form method=post action="/email/{{ newest_email_id }}/reply">
+  <textarea name=html placeholder="Your reply. HTML works: &lt;p&gt;, &lt;ul&gt;, &lt;pre&gt;." autofocus></textarea>
+  <div><button type=submit>Reply</button></div>
+  <div class=hint>Sends as you, to the agent, on this thread.</div>
+</form>
+{%- endmacro %}

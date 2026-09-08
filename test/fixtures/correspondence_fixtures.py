@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from domain.commands import SentEmail
 from domain.message import (
     Actor,
     Correspondence,
@@ -53,6 +54,24 @@ class CorrespondenceFixtures:
     @classmethod
     def read_message(cls, **overrides: Any) -> ReadMessage:
         return ReadMessage(content=cls.content(**overrides), read_at=READ_AT)
+
+    @classmethod
+    def sent_email(cls, **overrides: Any) -> SentEmail:
+        content = cls.content()
+        defaults: dict[str, Any] = {
+            "session": content.session,
+            "subject": content.subject,
+            "sender": content.sender,
+            "recipient": content.recipient,
+            "author": content.author,
+            "rfc_message_id": content.rfc_message_id,
+            "in_reply_to": content.in_reply_to,
+            "references": content.references,
+            "body_html": content.body_html,
+            "body_text": content.body_text,
+            "sent_at": content.sent_at,
+        }
+        return SentEmail(**(defaults | overrides))
 
     @classmethod
     def row(cls, state: MessageState, **overrides: Any) -> dict[str, Any]:

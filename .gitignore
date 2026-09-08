@@ -7,3 +7,6 @@ __pycache__/
 bin/
 *.sqlite
 *.db
+config.local.json
+node_modules/
+web/dist/

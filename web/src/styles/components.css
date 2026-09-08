@@ -1,0 +1,429 @@
+/* Component classes. Flat, BEM-ish, one level deep (.block-part), no nesting. */
+
+/* --- Buttons ---
+   Primary: the one action per screen you want the eye to land on (send, compose).
+   Secondary: everything else clickable (cancel, reply-as-draft, filters). Use at most
+   one primary button in any given view; secondary has no such limit. */
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-strong);
+  color: var(--color-accent-contrast);
+  font-weight: 600;
+}
+
+.primary-button:hover {
+  background: var(--color-accent);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.secondary-button:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Two-pane layout ---
+   Sidebar (thread list) and pane (open thread) each scroll independently, so a long
+   list and a long email don't fight over one scrollbar. Neither the app shell nor the
+   document sets an explicit height, so each column pins itself to the viewport with
+   `position: sticky` instead of relying on a height:100% chain that isn't there. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 22rem 1fr;
+  align-items: start;
+}
+
+.layout-sidebar {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+}
+
+.layout-pane {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+/* --- Thread list row --- */
+
+.thread-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thread-row:hover {
+  background: var(--color-surface-raised);
+}
+
+.thread-row-selected {
+  background: var(--color-surface-sunken);
+}
+
+/* --- Email body panel --- */
+
+.email {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* --- Chip ---
+   Base look only. Per-session background/text color is set inline by whatever
+   generates the Tol palette value — this class never hardcodes a hue. */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+}
+
+/* --- Notice: empty states, warnings, non-error system messages --- */
+
+.notice {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-notice-border);
+  border-radius: var(--radius-md);
+  background: var(--color-notice-bg);
+  color: var(--color-notice-text);
+}
+
+/* --- Error banner: a blocking failure (the api is down), stays until dismissed --- */
+
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.error-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.error-banner-status {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.error-banner-stack-toggle {
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+
+.error-banner-trace {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  max-height: 16rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}
+
+/* --- Error toast: a transient failure (one action failed), clears itself --- */
+
+.error-toast-stack {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 100;
+}
+
+.error-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+/* --- Reply box: sits between the newest message and the one below it --- */
+
+.reply-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.reply-box-textarea {
+  min-height: 6rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.reply-box-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* --- Message stack: newest email on top, flat. Indenting implied a reply tree the data
+   does not have -- every message is on one thread, not a reply to the one above it. --- */
+
+.message-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.message-stack-item {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.message-stack-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.message-stack-overflow {
+  margin-left: var(--space-5);
+}
+
+/* --- Meta: secondary line under a subject/title, e.g. "session · 3 emails · 2h ago" --- */
+
+.meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* --- Clickable / Card composition --- */
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--color-surface-raised);
+}
+
+.clickable[aria-current='true'] {
+  background: var(--color-surface-sunken);
+}
+
+.card {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-accented {
+  border-left: 3px solid var(--card-accent);
+}
+
+/* --- App shell: header, main, footer ---
+   The header and footer pin to the viewport so the two scrolling columns between them keep
+   their own scrollbars, which is what the layout already assumes. */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.app-header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.app-header-mark {
+  align-self: center;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-strong);
+}
+
+.app-header-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-header-mailbox {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.app-header-right {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.app-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+}
+
+.app-footer-version,
+.app-footer-status {
+  font-family: var(--font-mono);
+}
+
+.app-footer-link {
+  margin-left: auto;
+}
+
+/* --- Email pane: subject row with the reply action on the right --- */
+
+.email-pane-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.reply-box-hint {
+  margin-right: auto;
+  font-family: var(--font-mono);
+}
+
+/* --- Session filter: narrows the thread list to one Claude session --- */
+
+.session-filter {
+  width: calc(100% - 2 * var(--space-4));
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+/* Sidebar rows sit flush against the divider, so the heading needs the padding instead. */
+.layout-sidebar > h1 {
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+/* --- Thread summary: subject on one line, session and counts under it ---
+   One line per fact. Flowing them inline made every row wrap two or three times, which
+   made a scannable list unscannable. */
+
+.thread-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.thread-summary-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.thread-summary-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-summary-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
