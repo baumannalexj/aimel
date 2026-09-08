@@ -122,6 +122,12 @@ class SqliteEmailRepository(IEmailRepository):
         rows = self._db.query(sql.SELECT_ALL_THREADS, {"limit": limit})
         return [self._summary(SessionId(row["session"]), row) for row in rows]
 
+    def threads_for_mailbox(self, recipient: Email, limit: int = 200) -> list[ThreadSummary]:
+        rows = self._db.query(
+            sql.SELECT_THREADS_FOR_MAILBOX, {"recipient": recipient.address, "limit": limit}
+        )
+        return [self._summary(SessionId(row["session"]), row) for row in rows]
+
     def threads(self, session: SessionId) -> list[ThreadSummary]:
         summaries = []
         for row in self._db.query(sql.SELECT_THREADS_FOR_SESSION, {"session": str(session)}):

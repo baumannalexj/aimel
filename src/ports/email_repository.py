@@ -66,3 +66,11 @@ class IEmailRepository(ABC):
     @abstractmethod
     def all_threads(self, limit: int = 200) -> list[ThreadSummary]:
         """Threads across every session, so one inbox can span several agents."""
+
+    @abstractmethod
+    def threads_for_mailbox(self, recipient: Email, limit: int = 200) -> list[ThreadSummary]:
+        """Threads where that mailbox was addressed at least once, deleted mail included.
+
+        A thread stays in the mailbox even after the conversation moves on to other
+        agents replying among themselves — it only has to have included the mailbox once.
+        """

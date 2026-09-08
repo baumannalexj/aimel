@@ -171,6 +171,34 @@ SELECT_ALL_THREADS = """
     ORDER BY updated_at DESC
     LIMIT :limit"""
 
+SELECT_THREADS_FOR_MAILBOX = """
+    SELECT session,
+           thread_uuid,
+           subject,
+           COUNT(*)                                   AS count,
+           SUM(CASE WHEN state = 'unread' THEN 1 ELSE 0 END) AS unread_count,
+           MAX(sent_at)                                AS updated_at
+    FROM (
+        SELECT session, thread_uuid, subject, sent_at, recipient, 'unread' AS state FROM unread
+        UNION ALL
+        SELECT session, thread_uuid, subject, sent_at, recipient, 'read' AS state FROM read
+        UNION ALL
+        SELECT session, thread_uuid, subject, sent_at, recipient, 'deleted' AS state FROM deleted
+    )
+    WHERE thread_uuid IN (
+        SELECT thread_uuid FROM (
+            SELECT thread_uuid, recipient FROM unread
+            UNION ALL
+            SELECT thread_uuid, recipient FROM read
+            UNION ALL
+            SELECT thread_uuid, recipient FROM deleted
+        )
+        WHERE recipient = :recipient
+    )
+    GROUP BY thread_uuid
+    ORDER BY updated_at DESC
+    LIMIT :limit"""
+
 SELECT_THREADS_FOR_SESSION = """
     SELECT thread_uuid,
            subject,
