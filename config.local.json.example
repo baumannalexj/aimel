@@ -1,0 +1,6 @@
+{
+  "mailDir": "~/_claude-email",
+  "smtpConfig": {
+    "port": 1025
+  }
+}

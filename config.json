@@ -1,0 +1,27 @@
+{
+  "mailDir": "~/_claude-email",
+  "purgeAfterDrain": false,
+  "smtpConfig": {
+    "host": "localhost",
+    "port": 1025
+  },
+  "databaseConfig": {
+    "timeoutSeconds": 5.0
+  },
+  "namingConfig": {
+    "serviceName": "aimel",
+    "domain": "aimel.com",
+    "humanAddress": "{user}@{domain}",
+    "agentAddress": "claude-{session8}@{domain}",
+    "subjectTemplate": "{title}"
+  },
+  "webConfig": {
+    "defaultPortOwner": "spool",
+    "defaultPort": 8025,
+    "spoolAlternatePort": 8027,
+    "replyAlternatePort": 8026
+  },
+  "skillConfig": {
+    "targetDir": "~/.claude/skills/aimel"
+  }
+}
