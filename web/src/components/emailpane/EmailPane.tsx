@@ -7,11 +7,20 @@ import { ErrorSeverity } from '../../app/errors/ErrorSeverity'
 import { useErrorReporter } from '../../app/errors/ErrorSurface'
 import type { EmailThread } from '../../domain/EmailThread'
 import type { EmailRepository } from '../../repository/EmailRepository'
+import { KeyChord, Modifier } from '../KeyCommands'
 import { MessageStack, MessageStackProps } from './MessageStack'
 import { PaneHeader, PaneHeaderProps } from './PaneHeader'
 import { ReplyBox, ReplyBoxProps } from './ReplyBox'
 
 const NESTING_LIMIT = 5
+
+// Both, because Cmd is the mac chord and Ctrl is everywhere else, and a send shortcut that only
+// works on one of them reads as broken rather than as unsupported.
+const SEND_CHORDS = [
+  new KeyChord('Enter', [Modifier.Meta]),
+  new KeyChord('Enter', [Modifier.Ctrl]),
+]
+const SEND_HINT = '⌘↵ to send'
 
 interface Props {
   thread: EmailThread
@@ -43,7 +52,9 @@ export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
   }
 
   const replyBox = (
-    <ReplyBox {...new ReplyBoxProps(replying, () => setReplying(false), send)} />
+    <ReplyBox
+      {...new ReplyBoxProps(replying, () => setReplying(false), send, SEND_CHORDS, SEND_HINT)}
+    />
   )
 
   return (

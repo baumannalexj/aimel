@@ -14,6 +14,11 @@ import type { EmailThread } from './domain/EmailThread'
 import type { ThreadSummary } from './domain/ThreadSummary'
 import { EmailRepository } from './repository/EmailRepository'
 
+// Both are display-only. The address is whose inbox this is; mailpit is the raw spool, handy when
+// you want to see what actually went over SMTP.
+const MAILBOX = 'alexander.baumann@aimel.com'
+const MAILPIT_URL = 'http://localhost:8025'
+
 // ErrorSurface must sit above ErrorBoundary: the boundary reports into the surface's context, and
 // the surface is what actually renders the banner. Without it a throw blanks the page silently.
 export default function App() {
@@ -110,8 +115,14 @@ function Inbox({ repository }: InboxProps) {
 
   return (
     <Root
-      header={<Header productName="aimel" rightSlot={<ThreadCount count={threads.length} />} />}
-      footer={<Footer version="v0.0.0" />}
+      header={
+        <Header
+          productName="aimel"
+          mailbox={MAILBOX}
+          rightSlot={<UnreadSummary threads={threads} />}
+        />
+      }
+      footer={<Footer version="v0.0.0" link={{ label: 'mailpit', href: MAILPIT_URL }} />}
     >
       <Layout
         sidebar={
@@ -130,10 +141,14 @@ function Inbox({ repository }: InboxProps) {
   )
 }
 
-function ThreadCount({ count }: { count: number }) {
+function UnreadSummary({ threads }: { threads: ThreadSummary[] }) {
+  const unread = threads.filter((thread) => thread.hasUnread()).length
+  if (unread === 0) {
+    return <span>{threads.length} threads · all read</span>
+  }
   return (
     <span>
-      {count} thread{count === 1 ? '' : 's'}
+      {threads.length} threads · <strong>{unread} with unread</strong>
     </span>
   )
 }

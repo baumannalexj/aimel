@@ -282,3 +282,103 @@
 .card-accented {
   border-left: 3px solid var(--card-accent);
 }
+
+/* --- App shell: header, main, footer ---
+   The header and footer pin to the viewport so the two scrolling columns between them keep
+   their own scrollbars, which is what the layout already assumes. */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.app-header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.app-header-mark {
+  align-self: center;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-strong);
+}
+
+.app-header-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-header-mailbox {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.app-header-right {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.app-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+}
+
+.app-footer-version,
+.app-footer-status {
+  font-family: var(--font-mono);
+}
+
+.app-footer-link {
+  margin-left: auto;
+}
+
+/* --- Email pane: subject row with the reply action on the right --- */
+
+.email-pane-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.reply-box-hint {
+  margin-right: auto;
+  font-family: var(--font-mono);
+}
+
+/* Sidebar rows sit flush against the divider, so the heading needs the padding instead. */
+.layout-sidebar > h1 {
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
