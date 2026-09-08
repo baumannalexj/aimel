@@ -1,6 +1,5 @@
-// SEAM — props are settled, body is not. Ticket UI-3a.
-
 import type { ReactElement } from 'react'
+import { hashToHex } from '../../domain/ParticipantColor'
 
 export class PaneHeaderProps {
   sessionUuid: string
@@ -17,7 +16,7 @@ export function PaneHeader({ sessionUuid, subject }: PaneHeaderProps): ReactElem
     <div>
       <h2>{subject}</h2>
       <small className="meta">
-        <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>{sessionUuid}</span>
+        <span className="chip" style={{ background: hashToHex(sessionUuid) }}>{sessionUuid}</span>
       </small>
     </div>
   )

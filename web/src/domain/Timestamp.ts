@@ -1,5 +1,3 @@
-// SEAM — signature is settled, body is not. See the display() contract below.
-
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
 export class Timestamp {

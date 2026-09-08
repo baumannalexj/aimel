@@ -1,5 +1,3 @@
-// SEAM — signature is settled, body is not.
-//
 // Every participant gets a pill colour, the human included, derived from their email address so it
 // is stable across sessions and needs no storage. One function for everyone: if the human's colour
 // came from somewhere else it would drift from the agents' the first time either changed.
