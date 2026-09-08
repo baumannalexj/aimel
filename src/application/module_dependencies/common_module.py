@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from common.config import NamingConfig, PathsConfig
+from common.feature_flag_service import FeatureFlagService
 from common.naming import NamingPolicy
 from common.session import SessionDetector
 from common.session_color import SessionColorPalette
@@ -17,6 +18,7 @@ class CommonModule:
         self._thread_renderer = ThreadRenderer()
         self._session_colors = SessionColorPalette()
         self._skill_installer = SkillInstaller(paths.skill_source, paths.skill_target_dir)
+        self._feature_flags = FeatureFlagService.with_defaults()
 
     def provide_naming_policy(self) -> NamingPolicy:
         return self._naming_policy
@@ -32,3 +34,6 @@ class CommonModule:
 
     def provide_skill_installer(self) -> SkillInstaller:
         return self._skill_installer
+
+    def provide_feature_flags(self) -> FeatureFlagService:
+        return self._feature_flags

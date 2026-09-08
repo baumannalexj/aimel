@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% from "components/email.html" import email %}
+{% from "components/reply_form.html" import reply_form %}
+{% from "components/notice.html" import notice %}
+{% block body %}
+  <p class=meta><a href="/">&larr; all threads</a></p>
+  {% for one in props.emails %}
+    {{ email(one) }}
+  {% endfor %}
+  {% if props.responding_enabled %}
+    {{ reply_form(props.newest_email_id) }}
+  {% else %}
+    {{ notice("Replying is turned off for this session.") }}
+  {% endif %}
+{% endblock %}

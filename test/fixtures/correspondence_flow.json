@@ -1,0 +1,23 @@
+{
+  "thread": {
+    "subject": "the flaky auth test",
+    "email_count": 3
+  },
+  "emails_newest_first": [
+    { "author": "ai_agent", "state": "unread", "preview": "Fixed and green." },
+    { "author": "human",    "state": "unread", "preview": "ship it behind a flag" },
+    { "author": "ai_agent", "state": "unread", "preview": "Reproduced it." }
+  ],
+  "wire": {
+    "sent_count": 3,
+    "subjects_all_equal": true,
+    "first_has_no_in_reply_to": true,
+    "reference_counts": [0, 1, 2]
+  },
+  "after_read_and_delete": {
+    "unread": 1,
+    "read": 1,
+    "deleted": 1,
+    "history_still_shows": 3
+  }
+}

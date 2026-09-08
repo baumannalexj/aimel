@@ -26,6 +26,7 @@ class ApplicationModule:
         self.client_module = ClientModule(
             config.smtp, config.mailbox, config.naming.service_name,
             config.paths.compose_file,
+            config.web.spool_port,
         )
         self.core_module = CoreModule(
             self.repository_module.provide_email_repository(),
@@ -45,6 +46,7 @@ class ApplicationModule:
             self.common_module.provide_naming_policy(),
             self.common_module.provide_session_detector(),
             self.common_module.provide_session_colors(),
+            self.common_module.provide_feature_flags(),
         )
 
     def provide_email_web_resource(self) -> EmailWebResource:

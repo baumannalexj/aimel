@@ -58,7 +58,11 @@ class WebServer:
                 if not markup:
                     self._redirect(f"/email/{match.group(1)}")
                     return
-                sent_id = resource.reply(match.group(1), markup)
+                try:
+                    sent_id = resource.reply(match.group(1), markup)
+                except PermissionError as refused:
+                    self._html(f"<h1>403</h1><p>{refused}</p>", status=403)
+                    return
                 self._redirect(f"/email/{sent_id}")
 
             def _html(self, body: str, status: int = 200) -> None:
