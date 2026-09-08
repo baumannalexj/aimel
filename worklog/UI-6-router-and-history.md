@@ -1,6 +1,8 @@
 # UI-6 — real URLs, back and forward
 
-Status: **not started**
+Status: **done** — Router is a context provider (`useRoute`/`useNavigate`), not a page switch;
+`InboxPage`/`ThreadPage` stay unused placeholders since App.tsx already had the real inbox/pane
+logic and `pages/` was scaffolding for a data layer that never needed it.
 
 Today thread selection is React state, not a URL. Nothing changes in the address bar, so back and
 forward do nothing and a thread cannot be linked. That is the ticket.

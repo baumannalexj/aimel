@@ -1,4 +1,4 @@
-// The route table: which paths exist and which root page serves each.
+// The route table: which paths exist and what a URL resolves to.
 // No dependency — this is a small hand-rolled matcher, not a routing library.
 
 export interface InboxRoute {
@@ -10,12 +10,17 @@ export interface ThreadRoute {
   readonly threadUuid: string
 }
 
+export interface EmailRoute {
+  readonly name: 'email'
+  readonly emailUuid: string
+}
+
 export interface NotFoundRoute {
   readonly name: 'not-found'
   readonly path: string
 }
 
-export type RouteMatch = InboxRoute | ThreadRoute | NotFoundRoute
+export type RouteMatch = InboxRoute | ThreadRoute | EmailRoute | NotFoundRoute
 
 interface RouteDefinition<TMatch extends RouteMatch> {
   readonly segments: readonly string[]
@@ -31,9 +36,15 @@ function route<TMatch extends RouteMatch>(
 
 const routeTable: readonly RouteDefinition<RouteMatch>[] = [
   route('/', () => ({ name: 'inbox' })),
-  route('/threads/:threadUuid', (params) => ({
+  route('/inbox', () => ({ name: 'inbox' })),
+  route('/emails', () => ({ name: 'inbox' })),
+  route('/emailthreads/:threadUuid', (params) => ({
     name: 'thread',
     threadUuid: params.get('threadUuid')!,
+  })),
+  route('/emails/:emailUuid', (params) => ({
+    name: 'email',
+    emailUuid: params.get('emailUuid')!,
   })),
 ]
 
