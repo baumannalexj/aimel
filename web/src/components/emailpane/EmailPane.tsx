@@ -60,7 +60,7 @@ export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
   return (
     <section className="email-pane">
       <div className="email-pane-top">
-        <PaneHeader {...new PaneHeaderProps(thread.session, thread.subject)} />
+        <PaneHeader {...new PaneHeaderProps(thread.session, thread.subject, thread.color())} />
         <button type="button" className="secondary-button" onClick={() => setReplying(true)}>
           Reply
         </button>

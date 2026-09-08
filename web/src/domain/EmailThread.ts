@@ -1,5 +1,6 @@
 import type { ThreadDetailResponse } from '../api/responses'
 import { Email } from './Email'
+import { hashToHex } from './ParticipantColor'
 
 export class EmailThread {
   threadUuid: string
@@ -43,5 +44,9 @@ export class EmailThread {
 
   unreadCount(): number {
     return this.emails.filter((email) => email.isUnread()).length
+  }
+
+  color(): string {
+    return hashToHex(this.session)
   }
 }

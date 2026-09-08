@@ -98,6 +98,7 @@ class SessionListItem(_Payload):
     sessionUuid: str
     shortUuid: str
     project: str
+    name: str
     context: str
     lastActiveAt: str
 
@@ -107,6 +108,7 @@ class SessionListItem(_Payload):
             sessionUuid=session.session_uuid,
             shortUuid=session.session_uuid[:8],
             project=session.project,
+            name=session.name,
             context=session.context,
             lastActiveAt=session.last_active_at.isoformat(timespec="seconds"),
         )

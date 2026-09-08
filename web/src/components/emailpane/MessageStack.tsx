@@ -29,7 +29,7 @@ export function MessageStack({ emails, limit, slotAfterNewest }: MessageStackPro
         <div key={email.emailUuid}>
           <article className="message-stack-item">
             <header className="message-stack-item-header">
-              <AuthorPill {...new AuthorPillProps(email.sender, email.authorLabel())} />
+              <AuthorPill {...new AuthorPillProps(email.authorColor(), email.authorLabel())} />
               <small className="meta">{new Timestamp(email.sentAt).display()}</small>
             </header>
             {/* Our own agents' markup from a local database, so rendered as-is. */}

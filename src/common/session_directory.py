@@ -23,8 +23,16 @@ CONTEXT_CHAR_LIMIT = 200
 class TranscriptSession:
     session_uuid: str
     project: str
+    #: Claude Code's own generated title -- the "Session name" shown by /status. Empty until it has
+    #: written one, which is why context is kept as the fallback rather than replaced by this.
+    name: str
     context: str
     last_active_at: datetime
+
+    @property
+    def label(self) -> str:
+        """What to show: the session's own name, falling back to its opening prompt."""
+        return self.name or self.context
 
 
 class SessionDirectory:
@@ -50,11 +58,12 @@ class SessionDirectory:
             mtime = path.stat().st_mtime
         except OSError:
             return None
-        cwd, context = _scan(path)
+        scanned = _scan(path)
         return TranscriptSession(
             session_uuid=path.stem,
-            project=cwd or _decode_project(path.parent.name),
-            context=context,
+            project=scanned.cwd or _decode_project(path.parent.name),
+            name=scanned.name,
+            context=scanned.context,
             last_active_at=datetime.fromtimestamp(mtime, tz=timezone.utc),
         )
 
@@ -73,15 +82,28 @@ def _decode_project(slug: str) -> str:
     return "/" + slug.lstrip("-").replace("-", "/")
 
 
-def _scan(path: Path) -> tuple[str, str]:
-    """Returns (cwd, context), reading only as far as it needs both.
+@dataclass(frozen=True)
+class _Scanned:
+    cwd: str
+    name: str
+    context: str
+
+    @property
+    def complete(self) -> bool:
+        return bool(self.cwd and self.name and self.context)
+
+
+def _scan(path: Path) -> _Scanned:
+    """Reads only as far as it needs the cwd, the session name and the opening prompt.
 
     The transcript states its own cwd, so the project path is read rather than reconstructed from
-    the directory name -- that encoding cannot distinguish a dot from a slash. Both usually appear
-    within the first few lines, and the scan stops as soon as it has them, so a 400-line transcript
-    stays as cheap to label as a 4-line one.
+    the directory name -- that encoding cannot distinguish a dot from a slash. It also writes an
+    "ai-title" record carrying the name /status displays, which is a far better label than the
+    opening prompt. All three usually appear in the first couple of dozen lines and the scan stops
+    once it has them, so a 2000-line transcript stays about as cheap to label as a short one. A
+    session that has not been titled yet simply keeps the prompt as its label.
     """
-    cwd, context = "", ""
+    cwd = name = context = ""
     try:
         with path.open(encoding="utf-8") as handle:
             for line in handle:
@@ -89,18 +111,22 @@ def _scan(path: Path) -> tuple[str, str]:
                 if record is None:
                     continue
                 if not cwd:
-                    stated = record.get("cwd")
-                    if isinstance(stated, str) and stated:
-                        cwd = stated
+                    cwd = _string(record.get("cwd"))
+                if not name and record.get("type") == "ai-title":
+                    name = _string(record.get("aiTitle"))[:CONTEXT_CHAR_LIMIT]
                 if not context:
                     text = _user_message_text_from(record)
                     if text is not None:
                         context = text[:CONTEXT_CHAR_LIMIT]
-                if cwd and context:
+                if cwd and name and context:
                     break
     except OSError:
         pass
-    return cwd, context
+    return _Scanned(cwd=cwd, name=name, context=context)
+
+
+def _string(value: object) -> str:
+    return value if isinstance(value, str) else ""
 
 
 def _parsed(line: str) -> dict | None:

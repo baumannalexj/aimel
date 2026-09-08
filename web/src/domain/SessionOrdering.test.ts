@@ -12,8 +12,8 @@ import {
 
 // The real classes import only types, which erase, so node resolves nothing at runtime and these
 // can be constructed for real instead of faked. See tests/README.md for why that matters here.
-function session(name: string, project: string, lastActiveAt: string): ClaudeSession {
-  return new ClaudeSession(name, name, project, '', lastActiveAt)
+function session(id: string, project: string, lastActiveAt: string, title = ''): ClaudeSession {
+  return new ClaudeSession(id, id, project, title, '', lastActiveAt)
 }
 
 function thread(session: string, updatedAt: string): ThreadSummary {
@@ -83,4 +83,18 @@ test('threads order newest activity first', () => {
     sorted(list, new ThreadsByUpdatedDescending()).map((t) => t.session),
     ['b', 'a'],
   )
+})
+
+test('a session labels itself with its own name when it has one', () => {
+  const named = session('a', 'p', '2026-01-01T00:00:00+00:00', 'Tiny email server with HTML for Claude agents')
+
+  assert.equal(named.label(), 'Tiny email server with HTML for Claude agents')
+})
+
+test('an untitled session falls back to its opening prompt, then to a placeholder', () => {
+  const untitled = new ClaudeSession('b', 'b', 'p', '', 'what I first asked', '2026-01-01T00:00:00+00:00')
+  const blank = new ClaudeSession('c', 'c', 'p', '', '', '2026-01-01T00:00:00+00:00')
+
+  assert.equal(untitled.label(), 'what I first asked')
+  assert.equal(blank.label(), '(no prompt yet)')
 })

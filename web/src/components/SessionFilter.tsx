@@ -1,7 +1,6 @@
 import type { ClaudeSession } from '../domain/ClaudeSession'
 import type { Comparator } from '../domain/Ordering'
 import { sorted } from '../domain/Ordering'
-import { hashToHex } from '../domain/ParticipantColor'
 
 interface Props {
   sessions: ClaudeSession[]
@@ -12,7 +11,7 @@ interface Props {
 }
 
 function optionLabel(session: ClaudeSession): string {
-  return `${session.shortUuid} · ${session.project} — ${session.context || '(no prompt yet)'}`
+  return `${session.shortUuid} · ${session.label()}`
 }
 
 export function SessionFilter({ sessions, selectedSessionUuid, ordering, onChange }: Props) {
@@ -30,7 +29,7 @@ export function SessionFilter({ sessions, selectedSessionUuid, ordering, onChang
         <option
           key={session.sessionUuid}
           value={session.sessionUuid}
-          style={{ color: hashToHex(session.sessionUuid) }}
+          style={{ color: session.color() }}
         >
           {optionLabel(session)}
         </option>

@@ -1,22 +1,23 @@
 import type { ReactElement } from 'react'
-import { hashToHex } from '../../domain/ParticipantColor'
 
 export class PaneHeaderProps {
   sessionUuid: string
   subject: string
+  color: string
 
-  constructor(sessionUuid: string, subject: string) {
+  constructor(sessionUuid: string, subject: string, color: string) {
     this.sessionUuid = sessionUuid
     this.subject = subject
+    this.color = color
   }
 }
 
-export function PaneHeader({ sessionUuid, subject }: PaneHeaderProps): ReactElement {
+export function PaneHeader({ sessionUuid, subject, color }: PaneHeaderProps): ReactElement {
   return (
     <div>
       <h2>{subject}</h2>
       <small className="meta">
-        <span className="chip" style={{ background: hashToHex(sessionUuid) }}>{sessionUuid}</span>
+        <span className="chip" style={{ background: color }}>{sessionUuid}</span>
       </small>
     </div>
   )

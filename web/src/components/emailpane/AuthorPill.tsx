@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react'
-import { participantColor } from '../../domain/ParticipantColor'
 
 export class AuthorPillProps {
-  emailAddress: string
+  /** Handed in by the model that owns it, so this component derives nothing. */
+  color: string
   label: string
 
-  constructor(emailAddress: string, label: string) {
-    this.emailAddress = emailAddress
+  constructor(color: string, label: string) {
+    this.color = color
     this.label = label
   }
 }
@@ -39,7 +39,7 @@ function legibleForeground(backgroundHex: string): string {
 }
 
 export function AuthorPill(props: AuthorPillProps): ReactElement {
-  const background = participantColor(props.emailAddress)
+  const background = props.color
   const color = legibleForeground(background)
 
   return (

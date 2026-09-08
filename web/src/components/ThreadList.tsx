@@ -1,10 +1,10 @@
-import type { ThreadListItem } from '../types/contract'
+import type { ThreadSummary } from '../domain/ThreadSummary'
 import { ThreadRow } from './ThreadRow'
 
 interface Props {
-  threads: ThreadListItem[]
+  threads: ThreadSummary[]
   selectedThreadUuid: string | null
-  onOpen?: (thread: ThreadListItem) => void
+  onOpen?: (thread: ThreadSummary) => void
 }
 
 export function ThreadList({ threads, selectedThreadUuid, onOpen }: Props) {

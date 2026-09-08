@@ -42,6 +42,7 @@ export interface SessionListItemResponse {
   sessionUuid: string
   shortUuid: string
   project: string
+  name: string
   context: string
   lastActiveAt: string
 }
@@ -110,6 +111,7 @@ export function isSessionListItemResponse(value: unknown): value is SessionListI
     typeof value.sessionUuid === 'string' &&
     typeof value.shortUuid === 'string' &&
     typeof value.project === 'string' &&
+    typeof value.name === 'string' &&
     typeof value.context === 'string' &&
     typeof value.lastActiveAt === 'string'
   )

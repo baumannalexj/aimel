@@ -1,6 +1,7 @@
 import type { EmailItemResponse } from '../api/responses'
 import { Actor, parseActor } from './Actor'
 import { EmailState, parseEmailState } from './EmailState'
+import { participantColor } from './ParticipantColor'
 
 export class Email {
   emailUuid: string
@@ -59,5 +60,10 @@ export class Email {
 
   authorLabel(): string {
     return this.writtenByHuman() ? 'You' : 'AI agent'
+  }
+
+  /** Whoever wrote it, coloured from their address so it is the same wherever they appear. */
+  authorColor(): string {
+    return participantColor(this.sender)
   }
 }

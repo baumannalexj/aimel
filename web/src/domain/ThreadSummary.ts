@@ -1,4 +1,5 @@
 import type { ThreadListItemResponse } from '../api/responses'
+import { hashToHex } from './ParticipantColor'
 
 export class ThreadSummary {
   threadUuid: string
@@ -49,5 +50,9 @@ export class ThreadSummary {
 
   hasUnread(): boolean {
     return this.unreadCount > 0
+  }
+
+  color(): string {
+    return hashToHex(this.session)
   }
 }

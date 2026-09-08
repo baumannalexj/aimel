@@ -1,16 +1,15 @@
-import { hashToHex } from '../domain/ParticipantColor'
 import { Timestamp } from '../domain/Timestamp'
-import type { ThreadListItem } from '../types/contract'
+import type { ThreadSummary } from '../domain/ThreadSummary'
 import { AccentedCard } from './composition/Card'
 import { Clickable } from './composition/Clickable'
 
 interface Props {
-  thread: ThreadListItem
+  thread: ThreadSummary
   selected: boolean
-  onOpen?: (thread: ThreadListItem) => void
+  onOpen?: (thread: ThreadSummary) => void
 }
 
-function accessibleLabel(thread: ThreadListItem, updated: string): string {
+function accessibleLabel(thread: ThreadSummary, updated: string): string {
   const unreadPart = thread.unreadCount > 0 ? `, ${thread.unreadCount} unread` : ''
   return `${thread.subject}${unreadPart}, session ${thread.sessionShort}, ${thread.emailCount} email(s), updated ${updated}`
 }
@@ -18,7 +17,7 @@ function accessibleLabel(thread: ThreadListItem, updated: string): string {
 export function ThreadRow({ thread, selected, onOpen }: Props) {
   const unread = thread.unreadCount > 0
   const updated = new Timestamp(thread.updatedAt).display()
-  const sessionColor = hashToHex(thread.session)
+  const sessionColor = thread.color()
 
   return (
     <li>
