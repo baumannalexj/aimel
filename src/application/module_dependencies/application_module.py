@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from adapters.resource.email_cli_resource import EmailCliResource
+from adapters.resource.email_web_resource import EmailWebResource
 from application.cli_request_marshaller import CliRequestMarshaller
 from application.module_dependencies.client_module import ClientModule
 from application.module_dependencies.common_module import CommonModule
@@ -38,6 +39,15 @@ class ApplicationModule:
         self._cli_request_marshaller = CliRequestMarshaller(
             self.common_module.provide_session_detector()
         )
+        self._email_web_resource = EmailWebResource(
+            self.core_module.provide_inbox_service(),
+            self.common_module.provide_naming_policy(),
+            self.common_module.provide_session_detector(),
+            self.common_module.provide_session_colors(),
+        )
+
+    def provide_email_web_resource(self) -> EmailWebResource:
+        return self._email_web_resource
 
     def provide_cli_request_marshaller(self) -> CliRequestMarshaller:
         return self._cli_request_marshaller

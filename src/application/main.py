@@ -9,6 +9,7 @@ import sys
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.responses import EmailDeletedResponse, EmailSentResponse
 from application.module_dependencies.application_module import ApplicationModule
+from application.web_server import WebServer
 from common.config import DEFAULTS, AppConfig, ConfigLoader
 from common.session_color import SessionColorPalette
 from domain.message import Message
@@ -27,6 +28,13 @@ class CliApplication:
         try:
             if args.command == "status":
                 return self._status(config)
+            if args.command == "serve":
+                server = WebServer(
+                    module.provide_email_web_resource(), host=args.host, port=args.port
+                )
+                print(f"reply to your agents at {server.url}  (ctrl-c to stop)")
+                server.serve_forever()
+                return 0
             request = module.provide_cli_request_marshaller().marshal(args)
             return self._dispatch(
                 args.command,
@@ -84,6 +92,10 @@ class CliApplication:
         sub.add_parser("threads", help="threads for this session")
         sub.add_parser("deleted", help="soft-deleted mail")
         sub.add_parser("status", help="resolved config and health")
+
+        serve = sub.add_parser("serve", help="the reply-capable web view")
+        serve.add_argument("--port", type=int, default=8026)
+        serve.add_argument("--host", default="127.0.0.1")
 
         settings = sub.add_parser("settings", help="show or change saved settings")
         settings.add_argument("--set", action="append", metavar="KEY=VALUE", default=[])

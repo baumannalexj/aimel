@@ -51,6 +51,14 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 - [x] `history` includes deleted messages
 - [x] Session uuid detected from the newest Claude transcript, overridable
 
+### Web view
+- [x] `aimel serve` on `:8026` — threads collapsed into one row each, which Mailpit's flat capture
+      list cannot do
+- [x] Reply from the browser: Mailpit has no compose at all (`MessageRelay.Enabled: false`), so this
+      is the only way to answer an agent without the CLI
+- [x] Empty submissions redirect rather than sending a blank email
+- [ ] Bound to 127.0.0.1 with no auth — it holds unauthenticated mail, so keep it local
+
 ### Presentation
 - [x] Per-session hex colour from a hash, using Paul Tol's colourblind-safe light palette
 - [x] Light tint, never bold; honours `NO_COLOR` and non-TTY
@@ -64,8 +72,6 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 
 ## Next
 
-- [ ] **Our own HTML view.** The only real fix for collapsing threads in a list — Mailpit renders a
-      flat capture list with no grouping. Blocks the item below.
 - [ ] **Turn on `purge_after_drain`.** Deliberately off while Mailpit's UI is the only reader; mail
       currently lives in both stores.
 - [ ] **A session registry.** There is no record of which agents exist — an address is inferred from
