@@ -14,6 +14,7 @@ from common.naming import NamingPolicy
 from common.session import SessionDetector
 from core.inbox_service import InboxService
 from domain.message import (
+    Actor,
     DeletedMessage,
     Email,
     Message,
@@ -39,7 +40,7 @@ class EmailCliResource:
 
     def send_new_thread(self, request: SendNewThreadRequest) -> UnreadMessage:
         session = self._sessions.resolve(request.session)
-        sender, recipient = self._pair(session, request.as_human)
+        sender, recipient = self._pair(session, request.actor is Actor.HUMAN)
         subject = self._naming.subject_for(session, request.title)
         return self._inbox.send_new_thread(
             request.to_domain(session, sender, recipient, subject)
@@ -47,7 +48,7 @@ class EmailCliResource:
 
     def reply(self, request: ReplyRequest) -> UnreadMessage:
         session = self._sessions.resolve(request.session)
-        sender, recipient = self._pair(session, request.as_human)
+        sender, recipient = self._pair(session, request.actor is Actor.HUMAN)
         return self._inbox.reply(request.to_domain(session, sender, recipient))
 
     def delete(self, request: DeleteRequest) -> DeletedMessage:
@@ -73,7 +74,7 @@ class EmailCliResource:
 
     def mailbox_for(self, request: PollRequest) -> Email:
         session = self._sessions.resolve(request.session)
-        if request.as_human:
+        if request.mailbox_owner is Actor.HUMAN:
             return self._naming.human_address(session)
         return self._naming.agent_address(session)
 

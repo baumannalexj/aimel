@@ -9,6 +9,9 @@ from enum import Enum
 
 from domain.domain_model import DomainModel
 
+TAG = re.compile(r"<[^>]+>")
+QUOTED_HISTORY = re.compile(r"<hr><details.*?</details>", re.S)
+
 
 class MessageState(Enum):
     UNREAD = "unread"
@@ -16,13 +19,15 @@ class MessageState(Enum):
     DELETED = "deleted"
 
 
-class Author(Enum):
-    AGENT = "agent"
+class Actor(Enum):
+    """Who wrote it. Vendor-neutral, so a second agent kind costs one member."""
+
     HUMAN = "human"
+    AI_AGENT = "ai_agent"
 
     @property
-    def counterpart(self) -> "Author":
-        return Author.HUMAN if self is Author.AGENT else Author.AGENT
+    def counterpart(self) -> "Actor":
+        return Actor.HUMAN if self is Actor.AI_AGENT else Actor.AI_AGENT
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,33 @@ class EmailSubject(DomainModel):
 
 
 @dataclass(frozen=True)
+class HtmlBody(DomainModel):
+    """An email body. Pydantic ships no HTML type, so this is where that behaviour lives."""
+
+    markup: str
+
+    def to_plain_text(self) -> str:
+        """Tags become spaces, otherwise block boundaries weld words together."""
+        return " ".join(TAG.sub(" ", self.markup).split())
+
+    def without_quoted_history(self) -> "HtmlBody":
+        return HtmlBody(QUOTED_HISTORY.sub(" ", self.markup))
+
+    def preview(self, limit: int = 120) -> str:
+        """What a list view shows: this email only, never the thread quoted beneath it."""
+        return self.without_quoted_history().to_plain_text()[:limit]
+
+    def followed_by(self, more: str) -> "HtmlBody":
+        return HtmlBody(self.markup + more)
+
+    def __bool__(self) -> bool:
+        return bool(self.markup)
+
+    def __str__(self) -> str:
+        return self.markup
+
+
+@dataclass(frozen=True)
 class SessionId(DomainModel):
     value: str
 
@@ -70,25 +102,8 @@ class SessionId(DomainModel):
 
 
 @dataclass(frozen=True)
-class NewCorrespondence(DomainModel):
-    """Not yet persisted, so it has no id and no created_at — those are the database's to assign."""
-
-    session: SessionId
-    subject: EmailSubject
-    sender: Email
-    recipient: Email
-    author: Author
-    rfc_message_id: str
-    in_reply_to: str
-    references: tuple[str, ...]
-    body_html: str
-    body_text: str
-    sent_at: datetime
-
-
-@dataclass(frozen=True)
 class Correspondence(DomainModel):
-    """Everything true of a persisted message regardless of what state it is in.
+    """Everything true of a persisted email regardless of what state it is in.
 
     `id` is the row's uuid. The surrogate primary key never leaves the repository.
     """
@@ -100,20 +115,19 @@ class Correspondence(DomainModel):
     subject: EmailSubject
     sender: Email
     recipient: Email
-    author: Author
+    author: Actor
     rfc_message_id: str
     in_reply_to: str
     references: tuple[str, ...]
-    body_html: str
+    body_html: HtmlBody
     body_text: str
     sent_at: datetime
 
     @property
     def preview(self) -> str:
-        """Quoted history is stripped, otherwise every reply previews as the whole thread."""
-        body = self.body_text or self.body_html
-        body = re.sub(r"<hr><details.*?</details>", " ", body, flags=re.S)
-        return " ".join(re.sub(r"<[^>]+>", " ", body).split())[:120]
+        if self.body_html:
+            return self.body_html.preview()
+        return " ".join(self.body_text.split())[:120]
 
 
 @dataclass(frozen=True)

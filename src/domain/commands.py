@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 
 from domain.domain_model import DomainModel
-from domain.message import Author, Email, EmailSubject, SessionId
+from domain.message import Actor, Email, EmailSubject, HtmlBody, SessionId
+
+
+class IncludeHistory(Enum):
+    """Enum rather than a flag, so "just the last reply" can be added without a second boolean."""
+
+    NONE = "none"
+    ALL = "all"
 
 
 @dataclass(frozen=True)
@@ -17,10 +25,9 @@ class EmailSendNewThread(DomainModel):
     subject: EmailSubject
     sender: Email
     recipient: Email
-    author: Author
-    body_html: str
+    author: Actor
+    body_html: HtmlBody
     body_text: str
-    include_history: bool = False
 
 
 @dataclass(frozen=True)
@@ -31,10 +38,10 @@ class EmailReply(DomainModel):
     in_reply_to_email_id: str
     sender: Email
     recipient: Email
-    author: Author
-    body_html: str
+    author: Actor
+    body_html: HtmlBody
     body_text: str
-    include_history: bool = True
+    include_history: IncludeHistory = IncludeHistory.ALL
 
     def __post_init__(self) -> None:
         if not self.in_reply_to_email_id:
@@ -58,10 +65,10 @@ class SentEmail(DomainModel):
     subject: EmailSubject
     sender: Email
     recipient: Email
-    author: Author
+    author: Actor
     rfc_message_id: str
     in_reply_to: str
     references: tuple[str, ...]
-    body_html: str
+    body_html: HtmlBody
     body_text: str
     sent_at: datetime

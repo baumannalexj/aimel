@@ -3,12 +3,19 @@ from __future__ import annotations
 from datetime import datetime
 
 from common.thread_renderer import ThreadRenderer
-from domain.commands import EmailDelete, EmailReply, EmailSendNewThread, SentEmail
+from domain.commands import (
+    EmailDelete,
+    EmailReply,
+    EmailSendNewThread,
+    IncludeHistory,
+    SentEmail,
+)
 from domain.message import (
-    Author,
+    Actor,
     DeletedMessage,
     Email,
     EmailSubject,
+    HtmlBody,
     Message,
     MessageState,
     ReadMessage,
@@ -46,6 +53,7 @@ class InboxService:
             recipient=command.recipient,
             subject=command.subject,
             session=command.session,
+            actor=command.author,
             in_reply_to="",
             references=(),
         )
@@ -74,13 +82,14 @@ class InboxService:
         subject = history[-1].content.subject
         chain = tuple(message.content.rfc_message_id for message in reversed(history))
         body_html = command.body_html
-        if body_html and command.include_history:
-            body_html += self._renderer.render_history(history)
+        if body_html and command.include_history is IncludeHistory.ALL:
+            body_html = body_html.followed_by(self._renderer.render_history(history))
         envelope = Envelope(
             sender=command.sender,
             recipient=command.recipient,
             subject=subject,
             session=command.session,
+            actor=command.author,
             in_reply_to=chain[-1],
             references=chain,
         )
@@ -164,11 +173,11 @@ class InboxService:
             subject=EmailSubject(captured.subject or "(no subject)"),
             sender=Email(captured.sender),
             recipient=Email(captured.recipient),
-            author=Author.HUMAN if captured.headers.get("author") == "human" else Author.AGENT,
+            author=_actor_of(captured),
             rfc_message_id=captured.rfc_message_id,
             in_reply_to=captured.headers.get("in_reply_to", ""),
             references=tuple(captured.headers.get("references", "").split()),
-            body_html=captured.body_html,
+            body_html=HtmlBody(captured.body_html),
             body_text=captured.body_text,
             sent_at=_captured_at(captured.received_at),
         )
@@ -179,3 +188,11 @@ def _captured_at(value: str) -> datetime:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return now()
+
+
+def _actor_of(captured: CapturedMessage) -> Actor:
+    """Intake trusts the actor header and falls back to the agent when it is absent."""
+    try:
+        return Actor(captured.headers.get("actor", ""))
+    except ValueError:
+        return Actor.AI_AGENT

@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from domain.message import (
-    Author,
+    Actor,
     Correspondence,
     Email,
     EmailSubject,
+    HtmlBody,
     MessageState,
     ReadMessage,
     SessionId,
@@ -35,11 +36,11 @@ class CorrespondenceFixtures:
             "subject": EmailSubject("building claude email service"),
             "sender": Email("claude-0bd9c0c5@aimel.com"),
             "recipient": Email("someone@aimel.com"),
-            "author": Author.AGENT,
+            "author": Actor.AI_AGENT,
             "rfc_message_id": "<abc@aimel.com>",
             "in_reply_to": "",
             "references": (),
-            "body_html": "<p>body</p>",
+            "body_html": HtmlBody("<p>body</p>"),
             "body_text": "body",
             "sent_at": SENT_AT,
         }
@@ -69,7 +70,7 @@ class CorrespondenceFixtures:
             "rfc_message_id": content.rfc_message_id,
             "in_reply_to": "",
             "refs": "",
-            "body_html": content.body_html,
+            "body_html": content.body_html.markup,
             "body_text": content.body_text,
             "sent_at": "2026-09-07T22:15:00Z",
         }

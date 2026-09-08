@@ -33,6 +33,11 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 - [x] Existing data migrated: session prefixes stripped from stored subjects
 
 ### Domain types
+- [x] `HtmlBody` value object — pydantic ships no HTML type, so tag-stripping, plain-text derivation
+      and preview generation live here instead of being duplicated in the transport and the model
+- [x] `Actor` enum (`HUMAN` | `AI_AGENT`) replacing the `as_human` boolean, carried on the wire as
+      `X-<Service>-Actor` so intake can restore who wrote what
+- [x] `IncludeHistory` enum (`NONE` | `ALL`) replacing the `include_history` boolean
 - [x] `DomainModel` marker; every domain object a frozen dataclass
 - [x] `Email` with an `address` field, `EmailSubject`, `ThreadSlug`, `SessionId`, `EmailThread`
 - [x] Request objects carry domain types, marshalled once at the edge by `CliRequestMarshaller`

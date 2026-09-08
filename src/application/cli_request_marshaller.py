@@ -12,31 +12,44 @@ from adapters.resource.requests import (
     SendNewThreadRequest,
     SessionScopedRequest,
 )
+from domain.commands import IncludeHistory
+from domain.message import Actor
+
+
+def _actor(as_human: bool) -> Actor:
+    return Actor.HUMAN if as_human else Actor.AI_AGENT
+
+
+def _history(no_history: bool) -> IncludeHistory:
+    return IncludeHistory.NONE if no_history else IncludeHistory.ALL
+
 
 BUILDERS = {
     "send": lambda a: SendNewThreadRequest(
-        session=a.session, title=a.title, html=a.html, text=a.text, as_human=a.as_human
+        session=a.session, title=a.title, html=a.html, text=a.text, actor=_actor(a.as_human)
     ),
     "reply": lambda a: ReplyRequest(
         session=a.session,
         email_id=a.email_id,
         html=a.html,
         text=a.text,
-        as_human=False,
-        include_history=not a.no_history,
+        actor=Actor.AI_AGENT,
+        include_history=_history(a.no_history),
     ),
     "say": lambda a: ReplyRequest(
         session=a.session,
         email_id=a.email_id,
         html=a.html,
         text=a.text,
-        as_human=True,
-        include_history=not a.no_history,
+        actor=Actor.HUMAN,
+        include_history=_history(a.no_history),
     ),
     "delete": lambda a: DeleteRequest(email_id=a.email_id),
     "read": lambda a: EmailIdRequest(email_id=a.email_id),
     "history": lambda a: EmailIdRequest(email_id=a.email_id),
-    "poll": lambda a: PollRequest(session=a.session, as_human=a.as_human, limit=a.limit),
+    "poll": lambda a: PollRequest(
+        session=a.session, mailbox_owner=_actor(a.as_human), limit=a.limit
+    ),
     "threads": lambda a: SessionScopedRequest(session=a.session),
     "deleted": lambda a: ListRequest(limit=50),
     "drain": lambda a: DrainRequest(purge=a.purge, limit=a.limit),

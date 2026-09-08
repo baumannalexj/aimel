@@ -5,11 +5,12 @@ from typing import Any
 
 from domain.commands import SentEmail
 from domain.message import (
-    Author,
+    Actor,
     Correspondence,
     DeletedMessage,
     Email,
     EmailSubject,
+    HtmlBody,
     LiveMessage,
     Message,
     MessageState,
@@ -271,7 +272,7 @@ def _content_binds(sent: SentEmail | Correspondence) -> dict[str, Any]:
         "rfc_message_id": sent.rfc_message_id,
         "in_reply_to": sent.in_reply_to,
         "refs": " ".join(sent.references),
-        "body_html": sent.body_html,
+        "body_html": sent.body_html.markup,
         "body_text": sent.body_text,
         "sent_at": _iso(sent.sent_at),
     }
@@ -294,11 +295,11 @@ def _to_message(row: Row, state: MessageState) -> Message:
         subject=EmailSubject(row["subject"]),
         sender=Email(row["sender"]),
         recipient=Email(row["recipient"]),
-        author=Author(row["author"]),
+        author=Actor(row["author"]),
         rfc_message_id=row["rfc_message_id"],
         in_reply_to=row["in_reply_to"],
         references=tuple(row["refs"].split()),
-        body_html=row["body_html"],
+        body_html=HtmlBody(row["body_html"]),
         body_text=row["body_text"],
         sent_at=_require(row["sent_at"], "sent_at"),
     )

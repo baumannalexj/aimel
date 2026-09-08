@@ -50,6 +50,7 @@ class MailpitMailboxClient(IMailboxClient):
             received_at=detail.get("Date", ""),
             headers={
                 "session": _first(raw_headers, f"{self._prefix}-Session"),
+                "actor": _first(raw_headers, f"{self._prefix}-Actor"),
                 "thread": _first(raw_headers, f"{self._prefix}-Thread"),
                 "in_reply_to": _first(raw_headers, "In-Reply-To"),
                 "references": _first(raw_headers, "References"),
