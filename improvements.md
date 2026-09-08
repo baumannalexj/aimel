@@ -6,6 +6,25 @@ Living checklist. `architecture.md` covers *how*; this covers *what*, and what i
 
 Raised in review, not yet done.
 
+- [ ] **Make the schema relational: fetch by thread id and join.** Today each state table holds a
+      full copy of every column, so reading a thread is a `UNION ALL` of three wide selects and
+      "get the emails on this thread" is not a join at all. The relational shape keeps the
+      table-per-state idea but stores state as a *reference* rather than a copy:
+
+      ```
+      threads(pk, uuid, subject, created_at)
+      emails (pk, uuid, thread_pk -> threads.pk, session, sender, recipient,
+              actor, rfc_message_id, in_reply_to, refs, body_html, body_text, sent_at, created_at)
+      unread (email_pk -> emails.pk)
+      read   (email_pk -> emails.pk, read_at)
+      deleted(email_pk -> emails.pk, deleted_at, previous_state)
+      ```
+
+      Then a thread is one join on `thread_pk`, a state change moves a single narrow row, the subject
+      lives once instead of on every email, and `SELECT *` stops carrying eleven duplicated columns
+      per state. `IEmailRepository` should not change shape, so this is a repository-and-schema job
+      plus a rebuild from the spool.
+
 - [ ] **Swap the hand-rolled HTTP server for FastAPI.** Decided FastAPI over Flask, deferred — "fast
       but we should get back to this". `WebServer` is a `BaseHTTPRequestHandler` with hand-written
       routing, which is exactly what the hex boundary exists to make replaceable: `EmailWebResource`
@@ -36,6 +55,9 @@ Raised in review, not yet done.
 ## Shipped
 
 ### Mail plumbing
+- [x] `drain` strips the quoted history before persisting — Mailpit captures the *rendered* body, so
+      importing it verbatim duplicated the whole thread into every reply (16 of 50 rows were carrying
+      one). Existing rows keep theirs until the next rebuild.
 - [x] Mailpit container as SMTP intake on `:1025` and HTML viewer on `:8025`, pinned to v1.31.1
 - [x] Mail database location prompted on `up`, previous answer offered as the default
 - [x] Settings persisted to `~/.config/aimel/settings.json`, every key overridable by `AIMEL_<KEY>`

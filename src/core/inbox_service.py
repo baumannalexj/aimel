@@ -176,7 +176,9 @@ class InboxService:
             rfc_message_id=captured.rfc_message_id,
             in_reply_to=captured.headers.get("in_reply_to", ""),
             references=tuple(captured.headers.get("references", "").split()),
-            body_html=HtmlBody(captured.body_html),
+            # Mailpit captured the rendered body, history and all; storing that would
+            # duplicate the thread into every reply.
+            body_html=HtmlBody(captured.body_html).without_quoted_history(),
             body_text=captured.body_text,
             sent_at=parse_or_now(captured.received_at),
         )
