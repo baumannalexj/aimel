@@ -7,7 +7,7 @@
 // The point is that the whole container is the hit target, not a button inside it. Keyboard and
 // screen-reader behaviour still has to match a button: role, tabIndex, Enter and Space.
 
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 
 export interface ClickableProps {
   onClick: () => void
@@ -16,6 +16,6 @@ export interface ClickableProps {
   children: ReactNode
 }
 
-export function Clickable(_props: ClickableProps) {
+export function Clickable(_props: ClickableProps): ReactElement {
   throw new Error('Clickable is not implemented yet')
 }

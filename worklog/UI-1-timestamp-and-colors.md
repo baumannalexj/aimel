@@ -1,5 +1,7 @@
 # UI-1 — timestamp display + per-participant pill colour
 
+Status: **not started**
+
 Fill in two seams. Pure functions, no React, no fetch.
 
 ## `domain/Timestamp.ts`

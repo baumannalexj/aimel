@@ -1,5 +1,7 @@
 # UI-2 — click anywhere in the container, by composition
 
+Status: **not started**
+
 Today a thread row is only clickable on a `<button>` around its subject. The whole row should be the
 hit target.
 

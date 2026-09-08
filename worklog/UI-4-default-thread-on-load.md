@@ -1,5 +1,7 @@
 # UI-4 — open the newest thread on load
 
+Status: **not started**
+
 Today the app loads to an empty right pane and the user has to click something before seeing mail.
 Load the newest thread instead.
 
