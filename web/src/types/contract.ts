@@ -4,6 +4,7 @@ export interface ThreadListItem {
   threadUuid: string
   subject: string
   emailCount: number
+  unreadCount: number
   latestEmailUuid: string
   session: string
   sessionShort: string

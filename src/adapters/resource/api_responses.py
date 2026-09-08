@@ -19,6 +19,7 @@ class ThreadListItem(_Payload):
     threadUuid: str
     subject: str
     emailCount: int
+    unreadCount: int
     latestEmailUuid: str
     session: str
     sessionShort: str
@@ -31,6 +32,7 @@ class ThreadListItem(_Payload):
             threadUuid=thread.thread_uuid,
             subject=thread.subject.text,
             emailCount=thread.message_count,
+            unreadCount=thread.unread_count,
             latestEmailUuid=thread.latest_email_id,
             session=str(thread.session),
             sessionShort=thread.session.short,

@@ -150,6 +150,19 @@ class CorrespondenceFlowTest(unittest.TestCase):
         self.assertEqual(threads[0].subject.text, EXPECTED["thread"]["subject"])
         self.assertEqual(threads[0].message_count, 2)
 
+    def test_unread_count_tracks_reads_within_the_thread(self) -> None:
+        opener = self._send("the flaky auth test", "<p>Reproduced it.</p>")
+        self._reply(opener, "<p>ship it behind a flag</p>", Actor.HUMAN)
+
+        before = self.resource.threads(SessionScopedRequest(session=SESSION))
+        self.assertEqual(before[0].unread_count, 2)
+
+        self.resource.read(EmailIdRequest(email_id=UUID(opener)))
+
+        after = self.resource.threads(SessionScopedRequest(session=SESSION))
+        self.assertEqual(after[0].unread_count, 1)
+        self.assertEqual(after[0].message_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

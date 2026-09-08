@@ -140,6 +140,7 @@ class SqliteEmailRepository(IEmailRepository):
             thread_uuid=row["thread_uuid"],
             subject=EmailSubject(row["subject"]),
             message_count=row["count"],
+            unread_count=row["unread_count"],
             latest_email_id=latest[0]["uuid"] if latest else "",
             updated_at=from_iso8601_string(row["updated_at"], "updated_at"),
         )
