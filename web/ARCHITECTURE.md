@@ -10,10 +10,16 @@ rewritten freely as long as its seam holds.
       |
   EmailRepository   one method per UI use case         repository/EmailRepository.ts
       |
-  aimelServerClient one method per endpoint            api/aimelServerClient.ts
+  AimelServerClient one method per endpoint            api/aimelServerClient.ts
       |
   the python api                                       src/adapters/resource/api_responses.py
 ```
+
+**No interfaces on either of the bottom two.** There is one repository and one client, so an
+interface would be a second name for the same thing and a second place to edit. Classes, used
+directly. Ownership is the wiring: the root container constructs `EmailRepository`, and
+`EmailRepository` constructs `AimelServerClient` in its own constructor. Components and pages may
+only ever touch the repository — never the client, `Result`, `ResponseError`, or a `*Response`.
 
 ## The seams
 

@@ -1,30 +1,28 @@
-// The real seam. One method per UI use case, returning domain classes.
+// One method per UI use case, returning domain classes. There is one implementation, so pages take
+// this class directly rather than an interface.
 //
 // Errors go straight to the top: unwrap throws, nothing here catches, and the root container
 // renders the banner. Mapping each ResponseError kind to its own DomainException is V2 -- the
 // kinds and the exception classes already exist for it, they just aren't wired yet.
 
-import { aimelServerClient } from '../api/aimelServerClient'
+import { AimelServerClient } from '../api/aimelServerClient'
 import type { Result } from '../api/Result'
 import type { ResponseError } from '../api/ResponseError'
 import { ApiCallFailed } from '../domain/ApiCallFailed'
 import { Email } from '../domain/Email'
 import { EmailThread } from '../domain/EmailThread'
 import { ThreadSummary } from '../domain/ThreadSummary'
-import type { IEmailRepository } from './EmailRepositoryContract'
-
-type AimelServerClient = typeof aimelServerClient
 
 function unwrap<T>(result: Result<T, ResponseError>): T {
   if (result.kind === 'ok') return result.value
   throw new ApiCallFailed(result.error.status, result.error.path, result.error.message)
 }
 
-export class EmailRepository implements IEmailRepository {
+export class EmailRepository {
   private readonly client: AimelServerClient
 
-  constructor(client: AimelServerClient = aimelServerClient) {
-    this.client = client
+  constructor() {
+    this.client = new AimelServerClient()
   }
 
   async listInbox(): Promise<ThreadSummary[]> {

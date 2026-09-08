@@ -79,16 +79,25 @@ function requestJson<T>(
   )
 }
 
-export const aimelServerClient = {
-  threads: (): Promise<Result<ThreadListItemResponse[], ResponseError>> =>
-    request('/api/threads', { headers: { Accept: 'application/json' } }, isThreadListItemResponseArray),
+/** Constructed by EmailRepository. Nothing in the UI tiers should reach it directly. */
+export class AimelServerClient {
+  threads(): Promise<Result<ThreadListItemResponse[], ResponseError>> {
+    return request('/api/threads', { headers: { Accept: 'application/json' } }, isThreadListItemResponseArray)
+  }
 
-  thread: (emailUuid: string): Promise<Result<ThreadDetailResponse, ResponseError>> =>
-    request(`/api/emails/${emailUuid}/thread`, { headers: { Accept: 'application/json' } }, isThreadDetailResponse),
+  thread(emailUuid: string): Promise<Result<ThreadDetailResponse, ResponseError>> {
+    return request(
+      `/api/emails/${emailUuid}/thread`,
+      { headers: { Accept: 'application/json' } },
+      isThreadDetailResponse,
+    )
+  }
 
-  reply: (emailUuid: string, html: string): Promise<Result<ReplyAcceptedResponse, ResponseError>> =>
-    requestJson(`/api/emails/${emailUuid}/replies`, 'POST', { html }, isReplyAcceptedResponse),
+  reply(emailUuid: string, html: string): Promise<Result<ReplyAcceptedResponse, ResponseError>> {
+    return requestJson(`/api/emails/${emailUuid}/replies`, 'POST', { html }, isReplyAcceptedResponse)
+  }
 
-  markRead: (emailUuid: string): Promise<Result<EmailItemResponse, ResponseError>> =>
-    requestJson(`/api/emails/${emailUuid}/read`, 'POST', {}, isEmailItemResponse),
+  markRead(emailUuid: string): Promise<Result<EmailItemResponse, ResponseError>> {
+    return requestJson(`/api/emails/${emailUuid}/read`, 'POST', {}, isEmailItemResponse)
+  }
 }
