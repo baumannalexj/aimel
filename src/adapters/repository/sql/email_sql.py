@@ -176,38 +176,33 @@ SELECT_THREAD_ID_BY_EMAIL_UUID = """
     WHERE uuid = :uuid
     LIMIT 1"""
 
+# SQLite's bare-column rule resolves e.session/e.uuid from the same row that produced MAX(e.sent_at),
+# so the latest email per thread comes out of the grouped join with no per-thread lookup afterwards.
 SELECT_ALL_THREADS = """
-    SELECT session,
-           thread_uuid,
-           subject,
-           COUNT(*)     AS count,
-           MAX(sent_at) AS updated_at
-    FROM (
-        SELECT session, thread_uuid, subject, sent_at FROM unread
-        UNION ALL
-        SELECT session, thread_uuid, subject, sent_at FROM read
-        UNION ALL
-        SELECT session, thread_uuid, subject, sent_at FROM deleted
-    )
-    GROUP BY thread_uuid
+    SELECT t.uuid          AS thread_uuid,
+           t.subject       AS subject,
+           e.session       AS session,
+           e.uuid          AS latest_email_uuid,
+           COUNT(*)        AS count,
+           MAX(e.sent_at)  AS updated_at
+    FROM emails e
+    JOIN threads t ON t.id = e.thread_id
+    GROUP BY t.id
     ORDER BY updated_at DESC
     LIMIT :limit"""
 
+# latest_email_uuid is thread-wide (a correlated subquery, not the bare-column trick) because a
+# thread can carry replies from other sessions and this session's view should still surface them.
 SELECT_THREADS_FOR_SESSION = """
-    SELECT t.id         AS thread_id,
-           t.uuid        AS thread_uuid,
-           t.subject     AS subject,
-           COUNT(*)      AS count,
-           MAX(e.sent_at) AS updated_at
+    SELECT t.uuid         AS thread_uuid,
+           t.subject      AS subject,
+           COUNT(*)       AS count,
+           MAX(e.sent_at) AS updated_at,
+           (SELECT e2.uuid FROM emails e2
+             WHERE e2.thread_id = t.id
+             ORDER BY e2.sent_at DESC LIMIT 1) AS latest_email_uuid
     FROM emails e
     JOIN threads t ON t.id = e.thread_id
     WHERE e.session = :session
     GROUP BY t.id
     ORDER BY updated_at DESC"""
-
-SELECT_LATEST_EMAIL_IN_THREAD = """
-    SELECT uuid
-    FROM emails
-    WHERE thread_id = :thread_id
-    ORDER BY sent_at DESC
-    LIMIT 1"""
