@@ -1,6 +1,4 @@
-// SEAM — signature is settled, body is not. See Clickable.tsx for why these compose.
-
-import type { ReactElement, ReactNode } from 'react'
+import type { CSSProperties, ReactElement, ReactNode } from 'react'
 
 export interface CardProps {
   accentColor?: string
@@ -8,17 +6,12 @@ export interface CardProps {
 }
 
 export function Card({ accentColor, children }: CardProps): ReactElement {
+  // The accent is per-participant data, so it comes through as a custom property rather than a
+  // class. Everything else about the card is in components.css.
+  const accent = { '--card-accent': accentColor } as CSSProperties
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 'var(--space-3)',
-        padding: 'var(--space-3) var(--space-4)',
-        borderBottom: '1px solid var(--color-border)',
-        borderLeft: accentColor ? `3px solid ${accentColor}` : undefined,
-      }}
-    >
+    <div className={accentColor ? 'card card-accented' : 'card'} style={accentColor ? accent : undefined}>
       {children}
     </div>
   )

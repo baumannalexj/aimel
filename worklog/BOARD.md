@@ -23,6 +23,8 @@ Running now: UI on [8026](http://127.0.0.1:8026/), API on 8027, both out of `.wo
 | [UI-3d](UI-3d-reply-box.md) | reply top-right, box between latest and latest-1 | `components/emailpane/ReplyBox.tsx` | `improvement/ui-reply-box` |
 | [UI-4](UI-4-default-thread-on-load.md) | open the newest thread on load | `app/pages/*` | `improvement/ui-default-thread` |
 | [UI-5](UI-5-error-banner.md) | banner: status, message, expandable stack | `app/errors/ErrorBanner.tsx` | `improvement/ui-error-banner` |
+| [UI-6](UI-6-router-and-history.md) | real URLs, back and forward | `App.tsx`, `app/Router.tsx`, `app/routes.ts` | `improvement/ui-router-history` |
+| [UI-7](UI-7-expose-thread-uuid.md) | `threadUuid` on the email payload, `GET /api/emails/<uuid>` | `adapters/resource/*`, `email_sql.py` | `improvement/ui-thread-uuid` |
 
 `EmailPane.tsx` composes 3a–3d and is owned by the lead, so the four never touch the same file.
 UI-3b and UI-3c depend on UI-1's two seams; code against the signatures, they will not change.

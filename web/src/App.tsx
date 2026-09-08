@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { ErrorBoundary } from './app/errors/ErrorBoundary'
+import { ErrorSurface } from './app/errors/ErrorSurface'
 import { Footer } from './app/Footer'
 import { Header } from './app/Header'
 import { Layout } from './app/Layout'
@@ -8,7 +10,19 @@ import { ThreadList } from './components/ThreadList'
 import { aimelClient } from './repository/aimelClient'
 import type { EmailItem, ThreadDetail, ThreadListItem } from './types/contract'
 
+// ErrorSurface must sit above ErrorBoundary: the boundary reports into the surface's context, and
+// the surface is what actually renders the banner. Without it a throw blanks the page silently.
 export default function App() {
+  return (
+    <ErrorSurface>
+      <ErrorBoundary>
+        <Inbox />
+      </ErrorBoundary>
+    </ErrorSurface>
+  )
+}
+
+function Inbox() {
   const [threads, setThreads] = useState<ThreadListItem[]>([])
   const [open, setOpen] = useState<ThreadDetail | null>(null)
   const [error, setError] = useState('')

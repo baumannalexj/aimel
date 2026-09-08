@@ -200,3 +200,28 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* --- Clickable / Card composition --- */
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--color-surface-raised);
+}
+
+.clickable[aria-current='true'] {
+  background: var(--color-surface-sunken);
+}
+
+.card {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-accented {
+  border-left: 3px solid var(--card-accent);
+}
