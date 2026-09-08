@@ -1,5 +1,7 @@
 // SEAM — signature is settled, body is not. See the display() contract below.
 
+const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
 export class Timestamp {
   private readonly at: Date
 
@@ -14,7 +16,14 @@ export class Timestamp {
    * A year that isn't now is the thing you need to see; the weekday only helps for recent mail.
    */
   display(): string {
-    throw new Error('Timestamp.display is not implemented yet')
+    const isCurrentYear = this.year === new Date().getFullYear()
+    const datePrefix = isCurrentYear ? WEEKDAYS[this.at.getDay()] : String(this.year)
+    const separator = isCurrentYear ? ' ' : '/'
+    const month = this.at.getMonth() + 1
+    const day = this.at.getDate()
+    const hours = String(this.at.getHours()).padStart(2, '0')
+    const minutes = String(this.at.getMinutes()).padStart(2, '0')
+    return `${datePrefix}${separator}${month}/${day} @ ${hours}:${minutes}`
   }
 
   get year(): number {
