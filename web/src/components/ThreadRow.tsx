@@ -2,14 +2,15 @@ import type { ThreadListItem } from '../types/contract'
 
 interface Props {
   thread: ThreadListItem
+  selected: boolean
   onOpen?: (thread: ThreadListItem) => void
 }
 
-export function ThreadRow({ thread, onOpen }: Props) {
+export function ThreadRow({ thread, selected, onOpen }: Props) {
   const unread = thread.unreadCount > 0
   return (
-    <li className="thread-row">
-      <button type="button" onClick={() => onOpen?.(thread)}>
+    <li className={selected ? 'thread-row thread-row-selected' : 'thread-row'}>
+      <button type="button" aria-current={selected} onClick={() => onOpen?.(thread)}>
         {unread ? <strong>{thread.subject}</strong> : thread.subject}
       </button>{' '}
       {unread && (

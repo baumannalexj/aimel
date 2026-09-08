@@ -48,6 +48,34 @@
   cursor: not-allowed;
 }
 
+/* --- Two-pane layout ---
+   Sidebar (thread list) and pane (open thread) each scroll independently, so a long
+   list and a long email don't fight over one scrollbar. Neither the app shell nor the
+   document sets an explicit height, so each column pins itself to the viewport with
+   `position: sticky` instead of relying on a height:100% chain that isn't there. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 22rem 1fr;
+  align-items: start;
+}
+
+.layout-sidebar {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+}
+
+.layout-pane {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
 /* --- Thread list row --- */
 
 .thread-row {
@@ -60,6 +88,10 @@
 
 .thread-row:hover {
   background: var(--color-surface-raised);
+}
+
+.thread-row-selected {
+  background: var(--color-surface-sunken);
 }
 
 /* --- Email body panel --- */

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Footer } from './app/Footer'
 import { Header } from './app/Header'
+import { Layout } from './app/Layout'
 import { Root } from './app/Root'
 import { Thread } from './components/Thread'
 import { ThreadList } from './components/ThreadList'
 import { aimelClient } from './repository/aimelClient'
-import type { ThreadDetail, ThreadListItem } from './types/contract'
+import type { EmailItem, ThreadDetail, ThreadListItem } from './types/contract'
 
 export default function App() {
   const [threads, setThreads] = useState<ThreadListItem[]>([])
@@ -15,6 +16,16 @@ export default function App() {
   useEffect(() => {
     aimelClient.threads().then(setThreads).catch((cause) => setError(String(cause)))
   }, [])
+
+  function markRead(email: EmailItem) {
+    // Only unread mail needs the round trip, and the sidebar count follows it.
+    if (email.state !== 'unread') return
+    aimelClient
+      .markRead(email.emailUuid)
+      .then(() => aimelClient.threads())
+      .then(setThreads)
+      .catch((cause) => setError(String(cause)))
+  }
 
   function reload(emailUuid: string) {
     aimelClient
@@ -40,17 +51,31 @@ export default function App() {
     >
       {error ? (
         <p role="alert" className="notice">{error}</p>
-      ) : open ? (
-        <Thread
-            thread={open}
-            onBack={() => setOpen(null)}
-            onReplied={(emailUuid) => reload(emailUuid)}
-          />
       ) : (
-        <>
-          <h1>Inbox</h1>
-          <ThreadList threads={threads} onOpen={openThread} />
-        </>
+        <Layout
+          sidebar={
+            <>
+              <h1>Inbox</h1>
+              <ThreadList
+                threads={threads}
+                selectedThreadUuid={open?.threadUuid ?? null}
+                onOpen={openThread}
+              />
+            </>
+          }
+          pane={
+            open ? (
+              <Thread
+                thread={open}
+                onBack={() => setOpen(null)}
+                onReplied={(emailUuid) => reload(emailUuid)}
+            onEmailOpened={markRead}
+              />
+            ) : (
+              <p className="notice">Pick a thread to read it.</p>
+            )
+          }
+        />
       )}
     </Root>
   )

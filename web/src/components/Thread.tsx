@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { EmailItem, ThreadDetail } from '../types/contract'
 import { EmailDetail } from './EmailDetail'
 import { EmailRow } from './EmailRow'
@@ -8,10 +8,22 @@ interface Props {
   thread: ThreadDetail
   onBack: () => void
   onReplied: (newEmailUuid: string) => void
+  onEmailOpened: (email: EmailItem) => void
 }
 
-export function Thread({ thread, onBack, onReplied }: Props) {
-  const [openEmail, setOpenEmail] = useState<EmailItem | null>(null)
+export function Thread({ thread, onBack, onReplied, onEmailOpened }: Props) {
+  const [openEmail, setOpenEmail] = useState<EmailItem | null>(thread.emails[0] ?? null)
+
+  // emails are newest-first; jump straight to the latest one whenever the thread changes
+  // (switching threads, or a reply landing) instead of making the user click twice.
+  // Auto-selecting counts as opening it, otherwise the email you are looking at stays unread.
+  useEffect(() => {
+    const newest = thread.emails[0] ?? null
+    setOpenEmail(newest)
+    if (newest) onEmailOpened(newest)
+    // onEmailOpened is deliberately not a dependency: App redefines it every render, so
+    // including it would re-fire this effect forever.
+  }, [thread.emails[0]?.emailUuid])
 
   return (
     <section>
@@ -29,7 +41,10 @@ export function Thread({ thread, onBack, onReplied }: Props) {
             key={email.emailUuid}
             email={email}
             selected={openEmail?.emailUuid === email.emailUuid}
-            onOpen={setOpenEmail}
+            onOpen={(picked) => {
+              setOpenEmail(picked)
+              onEmailOpened(picked)
+            }}
           />
         ))}
       </ul>
