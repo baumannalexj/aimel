@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "${AIMEL_SMTP_PORT:-1025}:1025"
-      - "${AIMEL_HTTP_PORT:-8025}:8025"
+      - "${AIMEL_HTTP_PORT:-8027}:8025"
     environment:
       MP_DATABASE: /data/mailpit.db
       MP_MAX_MESSAGES: "${AIMEL_MAX_MESSAGES:-5000}"

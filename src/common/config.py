@@ -12,7 +12,7 @@ DEFAULTS: dict[str, object] = {
     "mail_dir": "~/_claude-email",
     "smtp_host": "localhost",
     "smtp_port": 1025,
-    "api_base": "http://localhost:8025",
+    "api_base": "http://localhost:8027",
     "domain": "aimel.com",
     "human_address": "{user}@{domain}",
     "agent_address": "claude-{session8}@{domain}",

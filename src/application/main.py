@@ -115,7 +115,7 @@ class CliApplication:
         sub.add_parser("status", help="resolved config and health")
 
         serve = sub.add_parser("serve", help="the reply-capable web view")
-        serve.add_argument("--port", type=int, default=8026)
+        serve.add_argument("--port", type=int, default=8025)
         serve.add_argument("--host", default="127.0.0.1")
 
         settings = sub.add_parser("settings", help="show or change saved settings")
