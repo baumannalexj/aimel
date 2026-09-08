@@ -11,6 +11,7 @@ from pathlib import Path
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.responses import EmailDeletedResponse, EmailSentResponse
 from application.module_dependencies.application_module import ApplicationModule
+from application.api_server import ApiServer
 from application.web_server import WebServer
 from common.config import DEFAULTS, AppConfig, ConfigLoader
 from common.session_color import SessionColorPalette
@@ -41,6 +42,15 @@ class CliApplication:
                 return 0
             if args.command == "status":
                 return self._status(config)
+            if args.command == "api":
+                server = ApiServer(
+                    module.provide_email_api_resource(),
+                    host=args.host,
+                    port=args.port or config.web.api_port,
+                )
+                print(f"api on {server.url}  (ctrl-c to stop)")
+                server.serve_forever()
+                return 0
             if args.command == "serve":
                 server = WebServer(
                     module.provide_email_web_resource(),
@@ -115,6 +125,10 @@ class CliApplication:
         sub.add_parser("threads", help="threads for this session")
         sub.add_parser("deleted", help="soft-deleted mail")
         sub.add_parser("status", help="resolved config and health")
+
+        api = sub.add_parser("api", help="json api for the web client")
+        api.add_argument("--port", type=int, default=None)
+        api.add_argument("--host", default="127.0.0.1")
 
         serve = sub.add_parser("serve", help="the reply-capable web view")
         serve.add_argument("--port", type=int, default=None)

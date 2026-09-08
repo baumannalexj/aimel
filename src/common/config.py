@@ -49,6 +49,11 @@ class WebConfig:
     spool_port: int
     reply_port: int
 
+    @property
+    def api_port(self) -> int:
+        """One above the ui, so the pair is predictable from either end."""
+        return self.reply_port + 1
+
     @classmethod
     def of(cls, owner: DefaultPortOwner) -> "WebConfig":
         if owner is DefaultPortOwner.REPLY:

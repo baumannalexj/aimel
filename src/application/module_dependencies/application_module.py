@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.email_web_resource import EmailWebResource
 from application.cli_request_marshaller import CliRequestMarshaller
@@ -38,6 +39,9 @@ class ApplicationModule:
             self.core_module.provide_inbox_service(),
             self.common_module.provide_naming_policy(),
         )
+        self._email_api_resource = EmailApiResource(
+            self.core_module.provide_inbox_service()
+        )
         self._cli_request_marshaller = CliRequestMarshaller(
             self.common_module.provide_session_detector()
         )
@@ -48,6 +52,9 @@ class ApplicationModule:
             self.common_module.provide_session_colors(),
             self.common_module.provide_feature_flags(),
         )
+
+    def provide_email_api_resource(self) -> EmailApiResource:
+        return self._email_api_resource
 
     def provide_email_web_resource(self) -> EmailWebResource:
         return self._email_web_resource
