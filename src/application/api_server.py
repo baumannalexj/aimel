@@ -9,6 +9,7 @@ from adapters.resource.email_api_resource import EmailApiResource
 from common.headers import HttpHeaders
 from domain.errors import EmailAlreadyDeleted, EmailNotFound
 
+EMAIL_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})$")
 THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
 REPLY_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/replies$")
 READ_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/read$")
@@ -47,7 +48,7 @@ class ApiServer:
                     scope = parse_qs(query).get("scope", ["mine"])[0]
                     self._json([item.model_dump() for item in resource.threads(scope)])
                     return
-                match = THREAD_PATH.match(self.path)
+                match = THREAD_PATH.match(self.path) or EMAIL_PATH.match(self.path)
                 if match:
                     try:
                         detail = resource.thread(match.group(1))

@@ -14,6 +14,7 @@ export interface ThreadListItemResponse {
 
 export interface EmailItemResponse {
   emailUuid: string
+  threadUuid: string
   author: string
   state: string
   sentAt: string
@@ -67,6 +68,7 @@ export function isEmailItemResponse(value: unknown): value is EmailItemResponse 
   return (
     isRecord(value) &&
     typeof value.emailUuid === 'string' &&
+    typeof value.threadUuid === 'string' &&
     typeof value.author === 'string' &&
     typeof value.state === 'string' &&
     typeof value.sentAt === 'string' &&
