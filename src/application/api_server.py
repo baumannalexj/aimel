@@ -9,6 +9,7 @@ from common.headers import HttpHeaders
 
 THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
 REPLY_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/replies$")
+READ_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/read$")
 
 
 class ApiServer:
@@ -53,6 +54,17 @@ class ApiServer:
                 self._json({"error": "not found"}, status=404)
 
             def do_POST(self) -> None:  # noqa: N802 - stdlib naming
+                read_match = READ_PATH.match(self.path)
+                if read_match:
+                    # No body expected, but drain it so a keep-alive connection stays in sync.
+                    self.rfile.read(int(self.headers.get("Content-Length", "0")))
+                    try:
+                        self._json(resource.mark_read(read_match.group(1)).model_dump())
+                    except ValueError as problem:
+                        # "email is deleted" is a state conflict; anything else means unknown uuid.
+                        status = 409 if "deleted" in str(problem) else 404
+                        self._json({"error": str(problem)}, status=status)
+                    return
                 match = REPLY_PATH.match(self.path)
                 if not match:
                     self._json({"error": "not found"}, status=404)

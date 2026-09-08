@@ -1,6 +1,6 @@
 // One place that talks to the api, so error handling lives here instead of in every component.
 
-import type { ReplyResult, ThreadDetail, ThreadListItem } from '../types/contract'
+import type { EmailItem, ReplyResult, ThreadDetail, ThreadListItem } from '../types/contract'
 
 export class AimelError extends Error {
   status: number
@@ -56,4 +56,5 @@ export const aimelClient = {
   thread: (emailUuid: string) => get<ThreadDetail>(`/api/emails/${emailUuid}/thread`),
   reply: (emailUuid: string, html: string) =>
     post<ReplyResult>(`/api/emails/${emailUuid}/replies`, { html }),
+  markRead: (emailUuid: string) => post<EmailItem>(`/api/emails/${emailUuid}/read`, {}),
 }

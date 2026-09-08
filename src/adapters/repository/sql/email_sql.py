@@ -157,14 +157,15 @@ SELECT_ALL_THREADS = """
     SELECT session,
            thread_uuid,
            subject,
-           COUNT(*)     AS count,
-           MAX(sent_at) AS updated_at
+           COUNT(*)                                   AS count,
+           SUM(CASE WHEN state = 'unread' THEN 1 ELSE 0 END) AS unread_count,
+           MAX(sent_at)                                AS updated_at
     FROM (
-        SELECT session, thread_uuid, subject, sent_at FROM unread
+        SELECT session, thread_uuid, subject, sent_at, 'unread' AS state FROM unread
         UNION ALL
-        SELECT session, thread_uuid, subject, sent_at FROM read
+        SELECT session, thread_uuid, subject, sent_at, 'read' AS state FROM read
         UNION ALL
-        SELECT session, thread_uuid, subject, sent_at FROM deleted
+        SELECT session, thread_uuid, subject, sent_at, 'deleted' AS state FROM deleted
     )
     GROUP BY thread_uuid
     ORDER BY updated_at DESC
@@ -173,14 +174,15 @@ SELECT_ALL_THREADS = """
 SELECT_THREADS_FOR_SESSION = """
     SELECT thread_uuid,
            subject,
-           COUNT(*)     AS count,
-           MAX(sent_at) AS updated_at
+           COUNT(*)                                   AS count,
+           SUM(CASE WHEN state = 'unread' THEN 1 ELSE 0 END) AS unread_count,
+           MAX(sent_at)                                AS updated_at
     FROM (
-        SELECT thread_uuid, subject, sent_at FROM unread  WHERE session = :session
+        SELECT thread_uuid, subject, sent_at, 'unread' AS state FROM unread  WHERE session = :session
         UNION ALL
-        SELECT thread_uuid, subject, sent_at FROM read    WHERE session = :session
+        SELECT thread_uuid, subject, sent_at, 'read' AS state FROM read    WHERE session = :session
         UNION ALL
-        SELECT thread_uuid, subject, sent_at FROM deleted WHERE session = :session
+        SELECT thread_uuid, subject, sent_at, 'deleted' AS state FROM deleted WHERE session = :session
     )
     GROUP BY thread_uuid
     ORDER BY updated_at DESC"""
