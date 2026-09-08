@@ -7,3 +7,9 @@ dependencies = []
 
 [tool.uv]
 package = false
+default-groups = ["adapters"]
+
+[dependency-groups]
+adapters = [
+    "pydantic>=2.13.5",
+]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from common.config import NamingConfig
-from domain.message import Email, EmailSubject, EmailThread, SessionId, ThreadSlug
+from domain.message import Email, EmailSubject, SessionId
 
 TEMPLATE_VARS = ("service", "user", "domain", "session", "session8", "thread", "title")
 
@@ -28,25 +28,16 @@ class NamingPolicy:
     def agent_address(self, session: SessionId) -> Email:
         return Email(self.render(self._config.agent_address, **self._context(session)))
 
-    def subject_for(
-        self, session: SessionId, thread: EmailThread, title: str
-    ) -> EmailSubject:
-        return EmailSubject(
-            self.render(
-                self._config.subject_template,
-                **self._context(session, thread=thread.slug, title=title),
-            )
-        )
+    def subject_for(self, session: SessionId, title: str) -> EmailSubject:
+        return EmailSubject(self.render(self._config.subject_template,
+                                        **self._context(session, title=title)))
 
-    def _context(
-        self, session: SessionId, thread: ThreadSlug | None = None, title: str = ""
-    ) -> dict[str, str]:
+    def _context(self, session: SessionId, title: str = "") -> dict[str, str]:
         return {
             "service": self._config.service_name,
             "user": self._config.user,
             "domain": self._config.domain,
             "session": str(session),
             "session8": session.short,
-            "thread": str(thread) if thread else "",
             "title": title,
         }

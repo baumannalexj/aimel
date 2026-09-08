@@ -29,7 +29,6 @@ class SmtpEmailTransport(IEmailTransport):
         if envelope.references:
             message["References"] = " ".join(envelope.references)
         message[f"{prefix}-Session"] = str(envelope.session)
-        message[f"{prefix}-Thread"] = str(envelope.thread)
         message["X-Tags"] = str(envelope.session)
         message.set_content(body_text or _to_plain_text(body_html))
         if body_html:

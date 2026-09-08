@@ -10,35 +10,28 @@ from domain.message import (
     Correspondence,
     Email,
     EmailSubject,
-    EmailThread,
     MessageState,
     ReadMessage,
     SessionId,
-    ThreadSlug,
     UnreadMessage,
 )
 
 SESSION = "0bd9c0c5-5b21-44be-9a3b-2793b5788d05"
 UUID = "11111111-2222-4333-8444-555555555555"
 THREAD_UUID = "99999999-8888-4777-8666-555555555555"
-SLUG = "building-claude-email-service"
 SENT_AT = datetime(2026, 9, 7, 22, 15, tzinfo=timezone.utc)
 CREATED_AT = datetime(2026, 9, 7, 22, 16, tzinfo=timezone.utc)
 READ_AT = datetime(2026, 9, 7, 22, 30, tzinfo=timezone.utc)
 
 
 class CorrespondenceFixtures:
-    @staticmethod
-    def thread() -> EmailThread:
-        return EmailThread.existing(THREAD_UUID, ThreadSlug(SLUG))
-
     @classmethod
     def content(cls, **overrides: Any) -> Correspondence:
         defaults: dict[str, Any] = {
             "id": UUID,
             "created_at": CREATED_AT,
             "session": SessionId(SESSION),
-            "thread": cls.thread(),
+            "thread_uuid": THREAD_UUID,
             "subject": EmailSubject("building claude email service"),
             "sender": Email("claude-0bd9c0c5@aimel.com"),
             "recipient": Email("someone@aimel.com"),
@@ -68,8 +61,7 @@ class CorrespondenceFixtures:
             "uuid": content.id,
             "created_at": "2026-09-07T22:16:00Z",
             "session": str(content.session),
-            "thread": str(content.thread.slug),
-            "thread_uuid": content.thread.thread_id,
+            "thread_uuid": content.thread_uuid,
             "subject": content.subject.text,
             "sender": content.sender.address,
             "recipient": content.recipient.address,

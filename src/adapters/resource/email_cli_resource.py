@@ -1,82 +1,69 @@
 from __future__ import annotations
 
 from adapters.resource.requests import (
+    DeleteRequest,
     DrainRequest,
+    EmailIdRequest,
     ListRequest,
-    MessageRequest,
     PollRequest,
-    SendRequest,
-    SessionRequest,
-    ThreadRequest,
+    ReplyRequest,
+    SendNewThreadRequest,
+    SessionScopedRequest,
 )
 from common.naming import NamingPolicy
+from common.session import SessionDetector
 from core.inbox_service import InboxService
 from domain.message import (
-    Author,
     DeletedMessage,
     Email,
     Message,
     ReadMessage,
+    SessionId,
     UnreadMessage,
 )
-from domain.outgoing import Draft
 from domain.thread import ThreadSummary
 
 
 class EmailCliResource:
-    """Upstream adapter. Receives typed requests and builds the domain models core needs."""
+    """Upstream adapter. Validated requests in, domain commands out."""
 
-    def __init__(self, inbox_service: InboxService, naming_policy: NamingPolicy):
+    def __init__(
+        self,
+        inbox_service: InboxService,
+        naming_policy: NamingPolicy,
+        session_detector: SessionDetector,
+    ):
         self._inbox = inbox_service
         self._naming = naming_policy
+        self._sessions = session_detector
 
-    def send(self, request: SendRequest) -> UnreadMessage:
-        thread = self._inbox.resolve_thread(request.session, request.thread)
-        history = self._inbox.history(request.session, thread)
-        if history:
-            # The subject is the thread's context, set once when it opens.
-            subject = history[0].content.subject
-        elif request.title:
-            subject = self._naming.subject_for(request.session, thread, request.title)
-        else:
-            raise ValueError(f"thread '{thread}' is new — pass --title to open it")
-
-        human = self._naming.human_address(request.session)
-        agent = self._naming.agent_address(request.session)
-        from_human = request.author is Author.HUMAN
-        return self._inbox.send_email(
-            Draft(
-                session=request.session,
-                thread=thread,
-                subject=subject,
-                sender=human if from_human else agent,
-                recipient=agent if from_human else human,
-                author=request.author,
-                body_html=request.html,
-                body_text=request.text,
-                include_history=request.include_history,
-            )
+    def send_new_thread(self, request: SendNewThreadRequest) -> UnreadMessage:
+        session = self._sessions.resolve(request.session)
+        sender, recipient = self._pair(session, request.as_human)
+        subject = self._naming.subject_for(session, request.title)
+        return self._inbox.send_new_thread(
+            request.to_domain(session, sender, recipient, subject)
         )
 
+    def reply(self, request: ReplyRequest) -> UnreadMessage:
+        session = self._sessions.resolve(request.session)
+        sender, recipient = self._pair(session, request.as_human)
+        return self._inbox.reply(request.to_domain(session, sender, recipient))
+
+    def delete(self, request: DeleteRequest) -> DeletedMessage:
+        return self._inbox.delete(request.to_domain())
+
+    def read(self, request: EmailIdRequest) -> ReadMessage:
+        return self._inbox.read(request.email_id)
+
+    def history(self, request: EmailIdRequest) -> list[Message]:
+        return self._inbox.history(request.email_id)
+
     def poll(self, request: PollRequest) -> list[UnreadMessage]:
-        mailbox = self.mailbox_for(request)
-        if request.thread is None:
-            return self._inbox.poll(mailbox, limit=request.limit)
-        thread = self._inbox.resolve_thread(request.session, request.thread)
-        return self._inbox.poll_thread(mailbox, thread, limit=request.limit)
+        return self._inbox.poll(self.mailbox_for(request), limit=request.limit)
 
-    def read(self, request: MessageRequest) -> ReadMessage:
-        return self._inbox.read(request.message_id)
-
-    def delete(self, request: MessageRequest) -> DeletedMessage:
-        return self._inbox.delete(request.message_id)
-
-    def history(self, request: ThreadRequest) -> list[Message]:
-        thread = self._inbox.resolve_thread(request.session, request.thread)
-        return self._inbox.history(request.session, thread)
-
-    def threads(self, request: SessionRequest) -> list[ThreadSummary]:
-        return self._inbox.threads(request.session)
+    def threads(self, request: SessionScopedRequest) -> list[ThreadSummary]:
+        return self._inbox.threads(self._sessions.resolve(request.session))
 
     def deleted(self, request: ListRequest) -> list[Message]:
         return self._inbox.deleted(limit=request.limit)
@@ -85,6 +72,12 @@ class EmailCliResource:
         return self._inbox.drain(purge=request.purge, limit=request.limit)
 
     def mailbox_for(self, request: PollRequest) -> Email:
-        if request.mailbox_owner is Author.HUMAN:
-            return self._naming.human_address(request.session)
-        return self._naming.agent_address(request.session)
+        session = self._sessions.resolve(request.session)
+        if request.as_human:
+            return self._naming.human_address(session)
+        return self._naming.agent_address(session)
+
+    def _pair(self, session: SessionId, as_human: bool) -> tuple[Email, Email]:
+        human = self._naming.human_address(session)
+        agent = self._naming.agent_address(session)
+        return (human, agent) if as_human else (agent, human)

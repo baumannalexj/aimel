@@ -1,53 +1,88 @@
-"""Request objects. Every field is a domain type — no primitives reach the resource."""
+"""Wire shapes. Validated by pydantic at the edge, then turned into domain commands.
+
+One request per operation, so no field is ever meaningless — a reply always names the email it
+answers, and opening a thread never carries a thread id.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict, Field
 
-from domain.message import Author, SessionId, ThreadSlug
-
-
-@dataclass(frozen=True)
-class SendRequest:
-    session: SessionId
-    thread: ThreadSlug
-    title: str
-    html: str
-    text: str
-    author: Author
-    include_history: bool
+from domain.commands import EmailDelete, EmailReply, EmailSendNewThread
+from domain.message import Author, Email, EmailSubject, SessionId
 
 
-@dataclass(frozen=True)
-class PollRequest:
-    session: SessionId
-    thread: ThreadSlug | None
-    mailbox_owner: Author
-    limit: int
+class _Request(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-@dataclass(frozen=True)
-class ThreadRequest:
-    session: SessionId
-    thread: ThreadSlug
+class SendNewThreadRequest(_Request):
+    session: str = ""
+    title: str = Field(min_length=1)
+    html: str = ""
+    text: str = ""
+    as_human: bool = False
+
+    def to_domain(
+        self, session: SessionId, sender: Email, recipient: Email
+    ) -> EmailSendNewThread:
+        return EmailSendNewThread(
+            session=session,
+            subject=EmailSubject(self.title),
+            sender=sender,
+            recipient=recipient,
+            author=Author.HUMAN if self.as_human else Author.AGENT,
+            body_html=self.html,
+            body_text=self.text,
+        )
 
 
-@dataclass(frozen=True)
-class SessionRequest:
-    session: SessionId
+class ReplyRequest(_Request):
+    session: str = "" # UUID
+    email_id: str = Field(min_length=1) # also UUID
+    html: str = "" # what's different from html and test? I think you can also change "subject"
+    text: str = ""
+    as_human: bool = False # try to avoid booleans - use Actor enum like HUMAN | CLAUDE |
+    include_history: bool = True # use an enum like IncludeHistory NONE | ALL
+
+    def to_domain(self, session: SessionId, sender: Email, recipient: Email) -> EmailReply:
+        return EmailReply(
+            session=session,
+            in_reply_to_email_id=self.email_id,
+            sender=sender,
+            recipient=recipient,
+            author=Author.HUMAN if self.as_human else Author.AGENT,
+            body_html=self.html,
+            body_text=self.text,
+            include_history=self.include_history,
+        )
 
 
-@dataclass(frozen=True)
-class MessageRequest:
-    message_id: str
+class DeleteRequest(_Request):
+    email_id: str = Field(min_length=1)
+
+    def to_domain(self) -> EmailDelete:
+        return EmailDelete(email_id=self.email_id)
 
 
-@dataclass(frozen=True)
-class ListRequest:
-    limit: int
+class EmailIdRequest(_Request):
+    email_id: str = Field(min_length=1)
 
 
-@dataclass(frozen=True)
-class DrainRequest:
-    purge: bool
-    limit: int
+class PollRequest(_Request):
+    session: str = "" # can this be a UUID
+    as_human: bool = False
+    limit: int = 50
+
+
+class SessionScopedRequest(_Request):
+    session: str = "" # make uuid
+
+
+class ListRequest(_Request):
+    limit: int = 50
+
+
+class DrainRequest(_Request):
+    purge: bool = False
+    limit: int = 200

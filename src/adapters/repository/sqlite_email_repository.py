@@ -3,20 +3,18 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from domain.commands import SentEmail
 from domain.message import (
     Author,
     Correspondence,
     DeletedMessage,
     Email,
     EmailSubject,
-    EmailThread,
     LiveMessage,
     Message,
     MessageState,
-    NewCorrespondence,
     ReadMessage,
     SessionId,
-    ThreadSlug,
     UnreadMessage,
 )
 from domain.thread import ThreadSummary
@@ -32,15 +30,15 @@ NEW_UUID = (
     "||'-'||hex(randomblob(6))))"
 )
 
+# uuid is unique because it identifies one email; thread_uuid is not, because a thread has many.
 IDENTITY_DDL = f"""
     pk             INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid           TEXT NOT NULL UNIQUE DEFAULT {NEW_UUID},
+    thread_uuid    TEXT NOT NULL DEFAULT {NEW_UUID},
     created_at     TEXT NOT NULL DEFAULT {NOW}"""
 
-CONTENT_DDL = f"""
+CONTENT_DDL = """
     session        TEXT NOT NULL,
-    thread         TEXT NOT NULL,
-    thread_uuid    TEXT NOT NULL DEFAULT {NEW_UUID},
     subject        TEXT NOT NULL,
     sender         TEXT NOT NULL,
     recipient      TEXT NOT NULL,
@@ -66,23 +64,36 @@ CREATE_TABLE = {
 }
 
 CONTENT_FIELDS = (
-    "session, thread, thread_uuid, subject, sender, recipient, author, "
+    "session, subject, sender, recipient, author, "
     "rfc_message_id, in_reply_to, refs, body_html, body_text, sent_at"
 )
 CONTENT_BINDS = (
-    ":session, :thread, :thread_uuid, :subject, :sender, :recipient, :author, "
+    ":session, :subject, :sender, :recipient, :author, "
     ":rfc_message_id, :in_reply_to, :refs, :body_html, :body_text, :sent_at"
 )
 
-INSERT_NEW_UNREAD = f"INSERT INTO unread ({CONTENT_FIELDS}) VALUES ({CONTENT_BINDS})"
+# New thread: thread_uuid is omitted so the schema default mints one.
+INSERT_NEW_THREAD = f"INSERT INTO unread ({CONTENT_FIELDS}) VALUES ({CONTENT_BINDS})"
+# Reply: the thread uuid is looked up from the answered email and bound explicitly.
+INSERT_REPLY = (
+    f"INSERT INTO unread (thread_uuid, {CONTENT_FIELDS}) "
+    f"VALUES (:thread_uuid, {CONTENT_BINDS})"
+)
 INSERT_MOVED_READ = (
-    f"INSERT INTO read (uuid, created_at, {CONTENT_FIELDS}) "
-    f"VALUES (:uuid, :created_at, {CONTENT_BINDS})"
+    f"INSERT INTO read (uuid, thread_uuid, created_at, {CONTENT_FIELDS}) "
+    f"VALUES (:uuid, :thread_uuid, :created_at, {CONTENT_BINDS})"
 )
 INSERT_MOVED_DELETED = (
-    f"INSERT INTO deleted (uuid, created_at, {CONTENT_FIELDS}, previous_state) "
-    f"VALUES (:uuid, :created_at, {CONTENT_BINDS}, :previous_state)"
+    f"INSERT INTO deleted (uuid, thread_uuid, created_at, {CONTENT_FIELDS}, previous_state) "
+    f"VALUES (:uuid, :thread_uuid, :created_at, {CONTENT_BINDS}, :previous_state)"
 )
+
+ALL_EMAILS = (
+    "SELECT uuid, thread_uuid FROM unread "
+    "UNION ALL SELECT uuid, thread_uuid FROM read "
+    "UNION ALL SELECT uuid, thread_uuid FROM deleted"
+)
+SELECT_THREAD_UUID_BY_EMAIL = f"SELECT thread_uuid FROM ({ALL_EMAILS}) WHERE uuid = :email_id LIMIT 1"
 
 DELETE_BY_UUID = {
     state: f"DELETE FROM {state.value} WHERE uuid = :uuid" for state in MessageState
@@ -90,49 +101,45 @@ DELETE_BY_UUID = {
 SELECT_BY_UUID = {
     state: f"SELECT * FROM {state.value} WHERE uuid = :uuid LIMIT 1" for state in MessageState
 }
+SELECT_BY_RFC = {
+    state: f"SELECT * FROM {state.value} WHERE rfc_message_id = :rfc LIMIT 1"
+    for state in MessageState
+}
+SELECT_BY_THREAD = {
+    state: f"SELECT * FROM {state.value} WHERE thread_uuid = :thread_uuid"
+    for state in MessageState
+}
 SELECT_LAST_INSERTED = "SELECT * FROM unread WHERE pk = last_insert_rowid()"
 SELECT_BY_STATE = {
     state: f"SELECT * FROM {state.value} ORDER BY sent_at DESC LIMIT :limit"
     for state in MessageState
 }
-SELECT_THREAD = {
-    state: f"SELECT * FROM {state.value} WHERE session = :session AND thread = :thread"
-    for state in MessageState
-}
-EXISTS_RFC = {
-    state: f"SELECT 1 FROM {state.value} WHERE rfc_message_id = :rfc LIMIT 1"
-    for state in MessageState
-}
-
-SELECT_THREAD_UUID = """
-SELECT thread_uuid FROM (
-    SELECT thread_uuid FROM unread  WHERE session = :session AND thread = :thread
-    UNION ALL
-    SELECT thread_uuid FROM read    WHERE session = :session AND thread = :thread
-    UNION ALL
-    SELECT thread_uuid FROM deleted WHERE session = :session AND thread = :thread
-) LIMIT 1
-"""
-
 SELECT_UNREAD_FOR = (
     "SELECT * FROM unread WHERE recipient = :recipient ORDER BY sent_at DESC LIMIT :limit"
 )
-SELECT_UNREAD_FOR_THREAD = (
-    "SELECT * FROM unread WHERE recipient = :recipient AND thread_uuid = :thread_uuid "
-    "ORDER BY sent_at DESC LIMIT :limit"
-)
 
 SELECT_THREADS = """
-SELECT thread, thread_uuid, subject, COUNT(*) AS count, MAX(sent_at) AS updated_at
+SELECT thread_uuid,
+       subject,
+       COUNT(*)      AS count,
+       MAX(sent_at)  AS updated_at
 FROM (
-    SELECT thread, thread_uuid, subject, sent_at FROM unread  WHERE session = :session
+    SELECT thread_uuid, subject, sent_at FROM unread  WHERE session = :session
     UNION ALL
-    SELECT thread, thread_uuid, subject, sent_at FROM read    WHERE session = :session
+    SELECT thread_uuid, subject, sent_at FROM read    WHERE session = :session
     UNION ALL
-    SELECT thread, thread_uuid, subject, sent_at FROM deleted WHERE session = :session
+    SELECT thread_uuid, subject, sent_at FROM deleted WHERE session = :session
 )
 GROUP BY thread_uuid
 ORDER BY updated_at DESC
+"""
+
+SELECT_LATEST_IN_THREAD = f"""
+SELECT uuid FROM (
+    SELECT uuid, thread_uuid, sent_at FROM unread
+    UNION ALL SELECT uuid, thread_uuid, sent_at FROM read
+    UNION ALL SELECT uuid, thread_uuid, sent_at FROM deleted
+) WHERE thread_uuid = :thread_uuid ORDER BY sent_at DESC LIMIT 1
 """
 
 
@@ -146,23 +153,29 @@ class SqliteEmailRepository(IEmailRepository):
         for state in MessageState:
             self._db.execute(CREATE_TABLE[state])
             self._db.execute(
-                f"CREATE INDEX IF NOT EXISTS {state.value}_thread "
-                f"ON {state.value} (session, thread_uuid, sent_at DESC)"
+                f"CREATE INDEX IF NOT EXISTS {state.value}_thread_uuid "
+                f"ON {state.value} (thread_uuid, sent_at DESC)"
             )
-
-    def resolve_thread(self, session: SessionId, slug: ThreadSlug) -> EmailThread:
-        rows = self._db.query(
-            SELECT_THREAD_UUID, {"session": str(session), "thread": str(slug)}
-        )
-        if rows:
-            return EmailThread.existing(rows[0]["thread_uuid"], slug)
-        return EmailThread.opening(slug)
+            self._db.execute(
+                f"CREATE INDEX IF NOT EXISTS {state.value}_session "
+                f"ON {state.value} (session, sent_at DESC)"
+            )
 
     # --- writes ---
 
-    def add(self, correspondence: NewCorrespondence) -> UnreadMessage:
+    def add_new_thread(self, sent: SentEmail) -> UnreadMessage:
         with self._db.transaction() as tx:
-            tx.execute(INSERT_NEW_UNREAD, _content_binds(correspondence))
+            tx.execute(INSERT_NEW_THREAD, _content_binds(sent))
+            rows = tx.query(SELECT_LAST_INSERTED)
+        if not rows:
+            raise RuntimeError("insert into unread reported no row")
+        return _to_message(rows[0], MessageState.UNREAD)
+
+    def add_reply(self, sent: SentEmail, in_reply_to_email_id: str) -> UnreadMessage:
+        thread_uuid = self._thread_uuid_of(in_reply_to_email_id)
+        binds = _content_binds(sent) | {"thread_uuid": thread_uuid}
+        with self._db.transaction() as tx:
+            tx.execute(INSERT_REPLY, binds)
             rows = tx.query(SELECT_LAST_INSERTED)
         if not rows:
             raise RuntimeError("insert into unread reported no row")
@@ -181,6 +194,12 @@ class SqliteEmailRepository(IEmailRepository):
             tx.execute(INSERT_MOVED_DELETED, binds)
         return self._reload(message.content.id, MessageState.DELETED)
 
+    def _thread_uuid_of(self, email_id: str) -> str:
+        rows = self._db.query(SELECT_THREAD_UUID_BY_EMAIL, {"email_id": email_id})
+        if not rows:
+            raise ValueError(f"cannot reply to an email that does not exist: {email_id}")
+        return rows[0]["thread_uuid"]
+
     def _reload(self, uuid: str, state: MessageState) -> Any:
         rows = self._db.query(SELECT_BY_UUID[state], {"uuid": uuid})
         if not rows:
@@ -189,9 +208,16 @@ class SqliteEmailRepository(IEmailRepository):
 
     # --- reads ---
 
-    def find(self, message_id: str) -> Message | None:
+    def find(self, email_id: str) -> Message | None:
         for state in MessageState:
-            rows = self._db.query(SELECT_BY_UUID[state], {"uuid": message_id})
+            rows = self._db.query(SELECT_BY_UUID[state], {"uuid": email_id})
+            if rows:
+                return _to_message(rows[0], state)
+        return None
+
+    def find_by_rfc_id(self, rfc_message_id: str) -> Message | None:
+        for state in MessageState:
+            rows = self._db.query(SELECT_BY_RFC[state], {"rfc": rfc_message_id})
             if rows:
                 return _to_message(rows[0], state)
         return None
@@ -202,69 +228,59 @@ class SqliteEmailRepository(IEmailRepository):
         )
         return [_to_message(row, MessageState.UNREAD) for row in rows]
 
-    def list_unread_in_thread(
-        self, recipient: Email, thread: EmailThread, limit: int = 50
-    ) -> list[UnreadMessage]:
-        rows = self._db.query(
-            SELECT_UNREAD_FOR_THREAD,
-            {"recipient": recipient.address, "thread_uuid": thread.thread_id, "limit": limit},
-        )
-        return [_to_message(row, MessageState.UNREAD) for row in rows]
-
     def list_by_state(self, state: MessageState, limit: int = 50) -> list[Message]:
         rows = self._db.query(SELECT_BY_STATE[state], {"limit": limit})
         return [_to_message(row, state) for row in rows]
 
-    def exists_by_rfc_id(self, rfc_message_id: str) -> bool:
-        for state in MessageState:
-            if self._db.query(EXISTS_RFC[state], {"rfc": rfc_message_id}):
-                return True
-        return False
-
-    def history(self, session: SessionId, thread: EmailThread) -> list[Message]:
+    def history_for_email(self, email_id: str) -> list[Message]:
+        thread_uuid = self._thread_uuid_of(email_id)
         messages: list[Message] = []
-        params = {"session": str(session), "thread": str(thread.slug)}
         for state in MessageState:
             messages.extend(
-                _to_message(row, state) for row in self._db.query(SELECT_THREAD[state], params)
+                _to_message(row, state)
+                for row in self._db.query(SELECT_BY_THREAD[state], {"thread_uuid": thread_uuid})
             )
         return sorted(messages, key=lambda m: m.content.sent_at, reverse=True)
 
     def threads(self, session: SessionId) -> list[ThreadSummary]:
-        rows = self._db.query(SELECT_THREADS, {"session": str(session)})
-        return [
-            ThreadSummary(
-                session=session,
-                thread=EmailThread.existing(row["thread_uuid"], ThreadSlug(row["thread"])),
-                subject=EmailSubject(row["subject"]),
-                message_count=row["count"],
-                updated_at=_require(row["updated_at"], "updated_at"),
+        summaries = []
+        for row in self._db.query(SELECT_THREADS, {"session": str(session)}):
+            latest = self._db.query(
+                SELECT_LATEST_IN_THREAD, {"thread_uuid": row["thread_uuid"]}
             )
-            for row in rows
-        ]
+            summaries.append(
+                ThreadSummary(
+                    session=session,
+                    thread_uuid=row["thread_uuid"],
+                    subject=EmailSubject(row["subject"]),
+                    message_count=row["count"],
+                    latest_email_id=latest[0]["uuid"] if latest else "",
+                    updated_at=_require(row["updated_at"], "updated_at"),
+                )
+            )
+        return summaries
 
 
-def _content_binds(content: NewCorrespondence | Correspondence) -> dict[str, Any]:
+def _content_binds(sent: SentEmail | Correspondence) -> dict[str, Any]:
     return {
-        "session": str(content.session),
-        "thread": str(content.thread.slug),
-        "thread_uuid": content.thread.thread_id,
-        "subject": content.subject.text,
-        "sender": content.sender.address,
-        "recipient": content.recipient.address,
-        "author": content.author.value,
-        "rfc_message_id": content.rfc_message_id,
-        "in_reply_to": content.in_reply_to,
-        "refs": " ".join(content.references),
-        "body_html": content.body_html,
-        "body_text": content.body_text,
-        "sent_at": _iso(content.sent_at),
+        "session": str(sent.session),
+        "subject": sent.subject.text,
+        "sender": sent.sender.address,
+        "recipient": sent.recipient.address,
+        "author": sent.author.value,
+        "rfc_message_id": sent.rfc_message_id,
+        "in_reply_to": sent.in_reply_to,
+        "refs": " ".join(sent.references),
+        "body_html": sent.body_html,
+        "body_text": sent.body_text,
+        "sent_at": _iso(sent.sent_at),
     }
 
 
 def _move_binds(content: Correspondence) -> dict[str, Any]:
     return _content_binds(content) | {
         "uuid": content.id,
+        "thread_uuid": content.thread_uuid,
         "created_at": _iso(content.created_at),
     }
 
@@ -273,8 +289,8 @@ def _to_message(row: Row, state: MessageState) -> Message:
     content = Correspondence(
         id=row["uuid"],
         created_at=_require(row["created_at"], "created_at"),
+        thread_uuid=row["thread_uuid"],
         session=SessionId(row["session"]),
-        thread=EmailThread.existing(row["thread_uuid"], ThreadSlug(row["thread"])),
         subject=EmailSubject(row["subject"]),
         sender=Email(row["sender"]),
         recipient=Email(row["recipient"]),
@@ -298,7 +314,8 @@ def _to_message(row: Row, state: MessageState) -> Message:
 
 
 def _iso(moment: datetime) -> str:
-    return moment.isoformat(timespec="seconds")
+    """Microseconds, so two emails in the same second still sort deterministically."""
+    return moment.isoformat(timespec="microseconds")
 
 
 def _require(value: str, field: str) -> datetime:

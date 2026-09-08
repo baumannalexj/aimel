@@ -3,22 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 
 from common.thread_renderer import ThreadRenderer
+from domain.commands import EmailDelete, EmailReply, EmailSendNewThread, SentEmail
 from domain.message import (
     Author,
     DeletedMessage,
     Email,
     EmailSubject,
-    EmailThread,
     Message,
     MessageState,
-    NewCorrespondence,
     ReadMessage,
     SessionId,
-    ThreadSlug,
     UnreadMessage,
     now,
 )
-from domain.outgoing import Draft, Envelope
+from domain.outgoing import Envelope
 from domain.thread import ThreadSummary
 from ports.email_repository import IEmailRepository
 from ports.email_transport import IEmailTransport
@@ -42,66 +40,87 @@ class InboxService:
         self._mailbox = mailbox_client
         self._renderer = thread_renderer
 
-    def resolve_thread(self, session: SessionId, slug: ThreadSlug) -> EmailThread:
-        return self._repository.resolve_thread(session, slug)
-
-    def send_email(self, draft: Draft) -> UnreadMessage:
-        history = self._repository.history(draft.session, draft.thread)
-        chain = tuple(message.content.rfc_message_id for message in reversed(history))
+    def send_new_thread(self, command: EmailSendNewThread) -> UnreadMessage:
         envelope = Envelope(
-            sender=draft.sender,
-            recipient=draft.recipient,
-            subject=draft.subject,
-            session=draft.session,
-            thread=draft.thread,
-            in_reply_to=chain[-1] if chain else "",
-            references=chain,
+            sender=command.sender,
+            recipient=command.recipient,
+            subject=command.subject,
+            session=command.session,
+            in_reply_to="",
+            references=(),
         )
-        body_html = draft.body_html
-        if body_html and draft.include_history and history:
-            body_html += self._renderer.render_history(history)
-        rfc_message_id = self._transport.send(envelope, body_html, draft.body_text)
-        return self._repository.add(
-            NewCorrespondence(
-                session=draft.session,
-                thread=draft.thread,
-                subject=draft.subject,
-                sender=draft.sender,
-                recipient=draft.recipient,
-                author=draft.author,
+        rfc_message_id = self._transport.send(envelope, command.body_html, command.body_text)
+        return self._repository.add_new_thread(
+            SentEmail(
+                session=command.session,
+                subject=command.subject,
+                sender=command.sender,
+                recipient=command.recipient,
+                author=command.author,
                 rfc_message_id=rfc_message_id,
-                in_reply_to=envelope.in_reply_to,
-                references=chain,
-                body_html=draft.body_html,
-                body_text=draft.body_text,
+                in_reply_to="",
+                references=(),
+                body_html=command.body_html,
+                body_text=command.body_text,
                 sent_at=now(),
             )
+        )
+
+    def reply(self, command: EmailReply) -> UnreadMessage:
+        history = self._repository.history_for_email(command.in_reply_to_email_id)
+        if not history:
+            raise ValueError(f"nothing to reply to: {command.in_reply_to_email_id}")
+        # The opener carries the thread's context; history is newest-first.
+        subject = history[-1].content.subject
+        chain = tuple(message.content.rfc_message_id for message in reversed(history))
+        body_html = command.body_html
+        if body_html and command.include_history:
+            body_html += self._renderer.render_history(history)
+        envelope = Envelope(
+            sender=command.sender,
+            recipient=command.recipient,
+            subject=subject,
+            session=command.session,
+            in_reply_to=chain[-1],
+            references=chain,
+        )
+        rfc_message_id = self._transport.send(envelope, body_html, command.body_text)
+        return self._repository.add_reply(
+            SentEmail(
+                session=command.session,
+                subject=subject,
+                sender=command.sender,
+                recipient=command.recipient,
+                author=command.author,
+                rfc_message_id=rfc_message_id,
+                in_reply_to=chain[-1],
+                references=chain,
+                body_html=command.body_html,
+                body_text=command.body_text,
+                sent_at=now(),
+            ),
+            command.in_reply_to_email_id,
         )
 
     def poll(self, mailbox: Email, limit: int = 50) -> list[UnreadMessage]:
         return self._repository.list_unread(mailbox, limit=limit)
 
-    def poll_thread(
-        self, mailbox: Email, thread: EmailThread, limit: int = 50
-    ) -> list[UnreadMessage]:
-        return self._repository.list_unread_in_thread(mailbox, thread, limit=limit)
-
-    def read(self, message_id: str) -> ReadMessage:
-        message = self._require(message_id)
+    def read(self, email_id: str) -> ReadMessage:
+        message = self._require(email_id)
         if isinstance(message, ReadMessage):
             return message
         if isinstance(message, DeletedMessage):
-            raise ValueError(f"message is deleted: {message_id}")
+            raise ValueError(f"email is deleted: {email_id}")
         return self._repository.mark_read(message)
 
-    def delete(self, message_id: str) -> DeletedMessage:
-        message = self._require(message_id)
+    def delete(self, command: EmailDelete) -> DeletedMessage:
+        message = self._require(command.email_id)
         if isinstance(message, DeletedMessage):
             return message
         return self._repository.soft_delete(message)
 
-    def history(self, session: SessionId, thread: EmailThread) -> list[Message]:
-        return self._repository.history(session, thread)
+    def history(self, email_id: str) -> list[Message]:
+        return self._repository.history_for_email(email_id)
 
     def threads(self, session: SessionId) -> list[ThreadSummary]:
         return self._repository.threads(session)
@@ -110,30 +129,38 @@ class InboxService:
         return self._repository.list_by_state(MessageState.DELETED, limit=limit)
 
     def drain(self, purge: bool = False, limit: int = 200) -> list[UnreadMessage]:
-        """Take ownership of whatever the intake spool captured."""
+        """Take ownership of the intake spool, threading by In-Reply-To."""
         claimed: list[UnreadMessage] = []
         taken: list[str] = []
-        for captured in self._mailbox.capture(limit=limit):
+        # Oldest first, otherwise a reply is imported before the email it answers
+        # and cannot find its thread.
+        for captured in reversed(self._mailbox.capture(limit=limit)):
             taken.append(captured.external_id)
-            if self._repository.exists_by_rfc_id(captured.rfc_message_id):
+            if self._repository.find_by_rfc_id(captured.rfc_message_id) is not None:
                 continue
-            claimed.append(self._repository.add(self._from_capture(captured)))
+            sent = self._from_capture(captured)
+            anchor = (
+                self._repository.find_by_rfc_id(captured.headers.get("in_reply_to", ""))
+                if captured.headers.get("in_reply_to")
+                else None
+            )
+            if anchor is None:
+                claimed.append(self._repository.add_new_thread(sent))
+            else:
+                claimed.append(self._repository.add_reply(sent, anchor.content.id))
         if purge and taken:
             self._mailbox.purge(taken)
         return claimed
 
-    def _require(self, message_id: str) -> Message:
-        message = self._repository.find(message_id)
+    def _require(self, email_id: str) -> Message:
+        message = self._repository.find(email_id)
         if message is None:
-            raise ValueError(f"no such message: {message_id}")
+            raise ValueError(f"no such email: {email_id}")
         return message
 
-    def _from_capture(self, captured: CapturedMessage) -> NewCorrespondence:
-        session = SessionId(captured.headers.get("session", "") or INTAKE_SESSION)
-        slug = ThreadSlug(captured.headers.get("thread", "") or "intake")
-        return NewCorrespondence(
-            session=session,
-            thread=self._repository.resolve_thread(session, slug),
+    def _from_capture(self, captured: CapturedMessage) -> SentEmail:
+        return SentEmail(
+            session=SessionId(captured.headers.get("session", "") or INTAKE_SESSION),
             subject=EmailSubject(captured.subject or "(no subject)"),
             sender=Email(captured.sender),
             recipient=Email(captured.recipient),

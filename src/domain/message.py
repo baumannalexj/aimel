@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -41,23 +40,6 @@ class Email(DomainModel):
 
 
 @dataclass(frozen=True)
-class ThreadSlug(DomainModel):
-    value: str
-
-    def __post_init__(self) -> None:
-        if not self.value:
-            raise ValueError("thread slug cannot be empty")
-
-    @classmethod
-    def from_title(cls, title: str) -> "ThreadSlug":
-        slug = re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", title.lower())).strip("-")
-        return cls(slug[:60])
-
-    def __str__(self) -> str:
-        return self.value
-
-
-@dataclass(frozen=True)
 class EmailSubject(DomainModel):
     """The thread's context. Set once, when the thread opens."""
 
@@ -69,28 +51,6 @@ class EmailSubject(DomainModel):
 
     def __str__(self) -> str:
         return self.text
-
-
-@dataclass(frozen=True)
-class EmailThread(DomainModel):
-    """Identity of the email chain itself, not its topic — the subject carries the topic."""
-
-    thread_id: str
-    slug: ThreadSlug
-
-    @classmethod
-    def opening(cls, slug: ThreadSlug) -> "EmailThread":
-        """First message on a thread — mint the id here."""
-        return cls(thread_id=str(uuid.uuid4()), slug=slug)
-
-    @classmethod
-    def existing(cls, thread_id: str, slug: ThreadSlug) -> "EmailThread":
-        if not thread_id:
-            raise ValueError("an existing thread must have an id")
-        return cls(thread_id=thread_id, slug=slug)
-
-    def __str__(self) -> str:
-        return str(self.slug)
 
 
 @dataclass(frozen=True)
@@ -114,7 +74,6 @@ class NewCorrespondence(DomainModel):
     """Not yet persisted, so it has no id and no created_at — those are the database's to assign."""
 
     session: SessionId
-    thread: EmailThread
     subject: EmailSubject
     sender: Email
     recipient: Email
@@ -136,8 +95,8 @@ class Correspondence(DomainModel):
 
     id: str
     created_at: datetime
+    thread_uuid: str
     session: SessionId
-    thread: EmailThread
     subject: EmailSubject
     sender: Email
     recipient: Email
