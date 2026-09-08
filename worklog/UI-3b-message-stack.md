@@ -1,6 +1,6 @@
 # UI-3b — nested message stack
 
-Status: **not started**
+Status: **done** — indent grows per depth but caps at 3 levels (border + marker carry any depth beyond that); overflow past `limit` renders as one "N earlier messages not shown" notice, not a truncated list.
 
 Fill `web/src/components/emailpane/MessageStack.tsx`. Props are settled; own that file only.
 
