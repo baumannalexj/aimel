@@ -1,6 +1,6 @@
 import type { ThreadDetailResponse } from '../api/responses'
 import { Email } from './Email'
-import { hashToHex } from './ParticipantColor'
+import { hashToHex } from './ParticipantColor.ts'
 
 export class EmailThread {
   threadUuid: string

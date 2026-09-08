@@ -1,7 +1,7 @@
 import type { EmailItemResponse } from '../api/responses'
 import { Actor, parseActor } from './Actor'
 import { EmailState, parseEmailState } from './EmailState'
-import { participantColor } from './ParticipantColor'
+import { participantColor } from './ParticipantColor.ts'
 
 export class Email {
   emailUuid: string

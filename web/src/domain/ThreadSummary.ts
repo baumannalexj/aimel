@@ -1,5 +1,5 @@
 import type { ThreadListItemResponse } from '../api/responses'
-import { hashToHex } from './ParticipantColor'
+import { hashToHex } from './ParticipantColor.ts'
 
 export class ThreadSummary {
   threadUuid: string

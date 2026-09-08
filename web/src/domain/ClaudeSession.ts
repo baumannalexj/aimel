@@ -1,5 +1,5 @@
 import type { SessionListItemResponse } from '../api/responses'
-import { hashToHex } from './ParticipantColor'
+import { hashToHex } from './ParticipantColor.ts'
 
 /** One Claude Code session found on disk, for the directory dropdown. */
 export class ClaudeSession {
