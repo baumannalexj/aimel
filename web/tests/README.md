@@ -9,10 +9,22 @@ so there is no runner to install.
 
 ## Why the rest are `.pending`
 
-`node --test` can only test **leaf modules** — ones that import nothing relative. Node requires exact
-import specifiers, and our app files import extensionlessly (`from './Actor'`). So the moment a test
-imports `Email`, node fails to resolve `Email`'s own imports at runtime. It is not a typecheck
-problem and no tsconfig fixes it.
+The dividing line is **value imports vs type-only imports**, and it is sharper than "leaf modules".
+
+Node requires exact import specifiers. Our app files import extensionlessly (`from './Actor'`), so
+node cannot resolve them. But a *type-only* import (`import type { … }`) is erased before node ever
+sees it, so a file whose relative imports are all type-only runs fine.
+
+That is why `SessionOrdering.test.ts` can construct real `ClaudeSession` and `ThreadSummary`
+objects — both import only types — while `Email.test.ts.pending` cannot:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../src/domain/Actor'
+  imported from .../src/domain/Email.ts
+```
+
+`Email.ts` imports `Actor` and `parseEmailState` as *values*, so node must resolve them. No tsconfig
+fixes this; it is a runtime resolution rule.
 
 Two ways out, both needing your approval to install:
 - **vitest** — resolves through vite, so it already understands our imports and aliases. One dev

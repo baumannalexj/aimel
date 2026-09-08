@@ -6,8 +6,10 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "esnext",
+    // bundler, not nodenext: node runs these fine because our app files import only types,
+    // which erase, but nodenext's checker demands .js extensions on every relative import.
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",

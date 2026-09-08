@@ -14,10 +14,22 @@ import type { ClaudeSession } from './domain/ClaudeSession'
 import { EmailState } from './domain/EmailState'
 import type { EmailThread } from './domain/EmailThread'
 import type { ThreadSummary } from './domain/ThreadSummary'
+import { Anything, filtered, sorted } from './domain/Ordering'
+import {
+  ByLastActiveDescending,
+  ThreadsByUpdatedDescending,
+  ThreadsOfSession,
+} from './domain/SessionOrdering'
 import { EmailRepository } from './repository/EmailRepository'
 
 // Display only: whose inbox this is.
 const MAILBOX = 'alexander.baumann@aimel.com'
+
+// Sorting and filtering are chosen here and passed down, so no component decides what order means
+// and nothing silently inherits whatever order the api happened to send. Swapping either is a
+// different constant, not a different component.
+const SESSION_ORDER = new ByLastActiveDescending()
+const THREAD_ORDER = new ThreadsByUpdatedDescending()
 
 // ErrorSurface must sit above ErrorBoundary: the boundary reports into the surface's context, and
 // the surface is what actually renders the banner. Without it a throw blanks the page silently.
@@ -47,10 +59,10 @@ function Inbox({ repository }: InboxProps) {
   const [threads, setThreads] = useState<ThreadSummary[]>([])
   const [sessions, setSessions] = useState<ClaudeSession[]>([])
   const [open, setOpen] = useState<EmailThread | null>(null)
-  const visibleThreads = useMemo(
-    () => (sessionFilter ? threads.filter((thread) => thread.session === sessionFilter) : threads),
-    [threads, sessionFilter],
-  )
+  const visibleThreads = useMemo(() => {
+    const predicate = sessionFilter ? new ThreadsOfSession(sessionFilter) : new Anything<ThreadSummary>()
+    return sorted(filtered(threads, predicate), THREAD_ORDER)
+  }, [threads, sessionFilter])
 
   // Async rejections never reach an ErrorBoundary -- React only catches throws during render -- so
   // every await here has to hand the failure to the surface itself or it vanishes into the console.
@@ -141,7 +153,12 @@ function Inbox({ repository }: InboxProps) {
         sidebar={
           <>
             <h1>Inbox</h1>
-            <SessionFilter sessions={sessions} selectedSessionUuid={sessionFilter} onChange={setSessionFilter} />
+            <SessionFilter
+              sessions={sessions}
+              selectedSessionUuid={sessionFilter}
+              ordering={SESSION_ORDER}
+              onChange={setSessionFilter}
+            />
             <ThreadList
               threads={visibleThreads}
               selectedThreadUuid={open?.threadUuid ?? null}
