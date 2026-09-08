@@ -133,6 +133,10 @@ class InboxService:
     def threads(self, session: SessionId) -> list[ThreadSummary]:
         return self._repository.threads(session)
 
+    def all_threads(self, limit: int = 200) -> list[ThreadSummary]:
+        """Every agent's threads, so one inbox can span sessions."""
+        return self._repository.all_threads(limit=limit)
+
     def deleted(self, limit: int = 50) -> list[Message]:
         return self._repository.list_by_state(MessageState.DELETED, limit=limit)
 

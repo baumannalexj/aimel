@@ -61,4 +61,8 @@ class IEmailRepository(ABC):
 
     @abstractmethod
     def threads(self, session: SessionId) -> list[ThreadSummary]:
-        """Threads for a session, most recently updated first."""
+        """Threads for one session, most recently updated first."""
+
+    @abstractmethod
+    def all_threads(self, limit: int = 200) -> list[ThreadSummary]:
+        """Threads across every session, so one inbox can span several agents."""

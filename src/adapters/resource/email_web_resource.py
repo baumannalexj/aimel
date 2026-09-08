@@ -53,8 +53,8 @@ class EmailWebResource:
     # --- pages ---
 
     def threads_page(self) -> str:
-        session = SessionId(str(self._sessions.resolve()))
-        threads = self._inbox.threads(session)
+        # Every session, not just the local one — otherwise other agents' mail is invisible.
+        threads = self._inbox.all_threads()
         return self._renderer.page(
             "inbox",
             InboxPageProps(
@@ -82,9 +82,14 @@ class EmailWebResource:
     # --- actions ---
 
     def reply(self, email_id: str, markup: str) -> str:
-        """Returns the id of the email just sent, for the redirect."""
+        """Returns the id of the email just sent, for the redirect.
+
+        Addressed from the answered email's session, not the locally detected one. Replying to
+        another agent while resolving the local session would post to our own mailbox, and the
+        agent that asked would never see the answer.
+        """
         self._require_responding_enabled()
-        session = SessionId(str(self._sessions.resolve()))
+        session = self._session_of(email_id)
         request = ReplyRequest(
             session=str(session),
             email_id=email_id,
@@ -100,6 +105,12 @@ class EmailWebResource:
             )
         )
         return sent.content.id
+
+    def _session_of(self, email_id: str) -> SessionId:
+        history = self._inbox.history(email_id)
+        if not history:
+            raise ValueError(f"no such email: {email_id}")
+        return history[0].content.session
 
     @property
     def responding_enabled(self) -> bool:

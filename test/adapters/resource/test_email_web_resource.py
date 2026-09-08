@@ -10,7 +10,7 @@ from common.naming import NamingPolicy
 from common.session import SessionDetector
 from common.session_color import SessionColorPalette
 from core.inbox_service import InboxService
-from domain.message import SessionId
+from domain.message import Actor, SessionId
 from test.fixtures.correspondence_fixtures import SESSION, CorrespondenceFixtures
 
 NAMING = NamingConfig(
@@ -62,6 +62,46 @@ class EmailRespondGateTest(unittest.TestCase):
 
         inbox.reply.assert_not_called()
 
+
+
+
+OTHER_SESSION = "f57a345e-1111-4222-8333-444444444444"
+
+
+class CrossSessionReplyTest(unittest.TestCase):
+    """Another Claude's thread must be answered to that Claude, not to whoever is local."""
+
+    def test_reply_is_addressed_to_the_threads_session_not_the_local_one(self) -> None:
+        inbox = create_autospec(InboxService, spec_set=True, instance=True)
+        theirs = CorrespondenceFixtures.unread_message(session=SessionId(OTHER_SESSION))
+        inbox.history.return_value = [theirs]
+        sessions = create_autospec(SessionDetector, spec_set=True, instance=True)
+        sessions.resolve.return_value = SessionId(SESSION)  # a different, local session
+        resource = EmailWebResource(
+            inbox, NamingPolicy(NAMING), sessions, SessionColorPalette(),
+            feature_flags=FeatureFlagService.with_defaults(environ={}),
+        )
+
+        resource.reply(theirs.content.id, "<p>answering another agent</p>")
+
+        command = inbox.reply.call_args.args[0]
+        self.assertEqual(str(command.session), OTHER_SESSION)
+        self.assertEqual(command.recipient.address, "claude-f57a345e@aimel.com")
+        self.assertEqual(command.author, Actor.HUMAN)
+
+    def test_the_inbox_lists_every_session_not_just_the_local_one(self) -> None:
+        inbox = create_autospec(InboxService, spec_set=True, instance=True)
+        inbox.all_threads.return_value = []
+        sessions = create_autospec(SessionDetector, spec_set=True, instance=True)
+        resource = EmailWebResource(
+            inbox, NamingPolicy(NAMING), sessions, SessionColorPalette(),
+            feature_flags=FeatureFlagService.with_defaults(environ={}),
+        )
+
+        resource.threads_page()
+
+        inbox.all_threads.assert_called_once()
+        inbox.threads.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
 from adapters.resource.email_web_resource import EmailWebResource
+from common.headers import HttpHeaders
 
 THREAD_PATH = re.compile(r"^/email/([0-9a-fA-F-]{36})$")
 REPLY_PATH = re.compile(r"^/email/([0-9a-fA-F-]{36})/reply$")
@@ -68,15 +69,15 @@ class WebServer:
             def _html(self, body: str, status: int = 200) -> None:
                 payload = body.encode("utf-8")
                 self.send_response(status)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(payload)))
+                self.send_header(HttpHeaders.CONTENT_TYPE, HttpHeaders.HTML_UTF8)
+                self.send_header(HttpHeaders.CONTENT_LENGTH, str(len(payload)))
                 self.end_headers()
                 self.wfile.write(payload)
 
             def _redirect(self, location: str) -> None:
                 self.send_response(303)
-                self.send_header("Location", location)
-                self.send_header("Content-Length", "0")
+                self.send_header(HttpHeaders.LOCATION, location)
+                self.send_header(HttpHeaders.CONTENT_LENGTH, "0")
                 self.end_headers()
 
             def log_message(self, fmt: str, *args) -> None:

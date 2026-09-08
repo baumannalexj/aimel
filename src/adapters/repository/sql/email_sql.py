@@ -153,6 +153,23 @@ SELECT_THREAD_UUID_BY_EMAIL = """
     WHERE uuid = :email_id
     LIMIT 1"""
 
+SELECT_ALL_THREADS = """
+    SELECT session,
+           thread_uuid,
+           subject,
+           COUNT(*)     AS count,
+           MAX(sent_at) AS updated_at
+    FROM (
+        SELECT session, thread_uuid, subject, sent_at FROM unread
+        UNION ALL
+        SELECT session, thread_uuid, subject, sent_at FROM read
+        UNION ALL
+        SELECT session, thread_uuid, subject, sent_at FROM deleted
+    )
+    GROUP BY thread_uuid
+    ORDER BY updated_at DESC
+    LIMIT :limit"""
+
 SELECT_THREADS_FOR_SESSION = """
     SELECT thread_uuid,
            subject,
