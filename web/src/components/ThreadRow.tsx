@@ -28,16 +28,24 @@ export function ThreadRow({ thread, selected, onOpen }: Props) {
         selected={selected}
       >
         <AccentedCard accentColor={sessionColor}>
-          {unread ? <strong>{thread.subject}</strong> : thread.subject}
-          {unread && (
-            <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>
-              {thread.unreadCount}
-            </span>
-          )}
-          <small className="meta">
-            <span className="chip" style={{ background: sessionColor }}>{thread.sessionShort}</span> ·{' '}
-            {thread.emailCount} email(s) · {updated}
-          </small>
+          <div className="thread-summary">
+            <div className="thread-summary-title">
+              <span className="thread-summary-subject">
+                {unread ? <strong>{thread.subject}</strong> : thread.subject}
+              </span>
+              {unread && (
+                <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>
+                  {thread.unreadCount}
+                </span>
+              )}
+            </div>
+            <small className="meta thread-summary-meta">
+              <span className="chip" style={{ background: sessionColor }}>{thread.sessionShort}</span>
+              <span>
+                {thread.emailCount} · {updated}
+              </span>
+            </small>
+          </div>
         </AccentedCard>
       </Clickable>
     </li>
