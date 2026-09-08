@@ -27,3 +27,4 @@ class HttpHeaders:
     LOCATION = "Location"
     HTML_UTF8 = "text/html; charset=utf-8"
     JSON = "application/json"
+    MARKDOWN = "text/markdown; charset=utf-8"

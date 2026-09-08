@@ -7,6 +7,7 @@ from urllib.parse import parse_qs
 
 from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.session_directory_resource import SessionDirectoryApiResource
+from adapters.resource.skill_resource import SkillResource
 from common.headers import HttpHeaders
 from domain.errors import EmailAlreadyDeleted, EmailNotFound
 
@@ -14,6 +15,8 @@ EMAIL_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})$")
 THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
 REPLY_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/replies$")
 READ_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/read$")
+# Skill names come from filenames on disk, so the pattern is deliberately narrow.
+SKILL_PATH = re.compile(r"^/api/skills/([a-z0-9][a-z0-9._-]{0,63})$", re.I)
 
 
 class ApiServer:
@@ -23,11 +26,13 @@ class ApiServer:
         self,
         resource: EmailApiResource,
         sessions: SessionDirectoryApiResource,
+        skills: SkillResource,
         host: str = "127.0.0.1",
         port: int = 8027,
     ):
         self._resource = resource
         self._sessions = sessions
+        self._skills = skills
         self._host = host
         self._port = port
 
@@ -47,6 +52,7 @@ class ApiServer:
     def _handler(self):
         resource = self._resource
         sessions = self._sessions
+        skills = self._skills
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
@@ -56,6 +62,19 @@ class ApiServer:
                 if path == "/api/threads":
                     scope = parse_qs(query).get("scope", ["mine"])[0]
                     self._json([item.model_dump() for item in resource.threads(scope)])
+                    return
+                if path == "/api/skills":
+                    self._json([item.model_dump() for item in skills.skills()])
+                    return
+                skill_match = SKILL_PATH.match(path)
+                if skill_match:
+                    markdown = skills.markdown(skill_match.group(1))
+                    if markdown is None:
+                        self._json({"error": f"no such skill: {skill_match.group(1)}"}, status=404)
+                        return
+                    # Served as markdown, not wrapped in JSON: an agent reads this, and asking it to
+                    # unescape a document out of a JSON string is a pointless step.
+                    self._text(markdown, HttpHeaders.MARKDOWN)
                     return
                 if path == "/api/sessions":
                     limit = parse_qs(query).get("limit", [None])[0]
@@ -106,6 +125,14 @@ class ApiServer:
                     self._json(resource.reply(match.group(1), markup).model_dump(), status=201)
                 except EmailNotFound as unknown:
                     self._json({"error": str(unknown)}, status=404)
+
+            def _text(self, body_text: str, content_type: str, status: int = 200) -> None:
+                body = body_text.encode("utf-8")
+                self.send_response(status)
+                self.send_header(HttpHeaders.CONTENT_TYPE, content_type)
+                self.send_header(HttpHeaders.CONTENT_LENGTH, str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
 
             def _json(self, payload: object, status: int = 200) -> None:
                 body = json.dumps(payload).encode("utf-8")
