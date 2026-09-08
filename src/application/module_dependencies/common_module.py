@@ -8,6 +8,7 @@ from common.feature_flag_service import FeatureFlagService
 from common.naming import NamingPolicy
 from common.session import SessionDetector
 from common.session_color import SessionColorPalette
+from common.session_directory import SessionDirectory
 from common.skill_installer import SkillInstaller
 from common.thread_renderer import ThreadRenderer
 
@@ -26,6 +27,7 @@ class CommonModule:
         self._session_detector = SessionDetector()
         self._thread_renderer = ThreadRenderer()
         self._session_colors = SessionColorPalette()
+        self._session_directory = SessionDirectory()
         self._skill_installer = SkillInstaller(repo_paths.skill_source(), config.skill.target_dir)
         self._feature_flags = FeatureFlagService.with_defaults()
 
@@ -40,6 +42,9 @@ class CommonModule:
 
     def provide_session_colors(self) -> SessionColorPalette:
         return self._session_colors
+
+    def provide_session_directory(self) -> SessionDirectory:
+        return self._session_directory
 
     def provide_skill_installer(self) -> SkillInstaller:
         return self._skill_installer

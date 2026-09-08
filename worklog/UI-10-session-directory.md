@@ -1,6 +1,6 @@
 # UI-10 — session directory and filter
 
-Status: **not started**
+Status: **done**
 
 A dropdown of every Claude session on this machine, most recently active first, that filters the
 inbox to one session and can start a new thread with it.

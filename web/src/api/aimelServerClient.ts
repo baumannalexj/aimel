@@ -5,10 +5,17 @@
 import {
   isEmailItemResponse,
   isReplyAcceptedResponse,
+  isSessionListItemResponseArray,
   isThreadDetailResponse,
   isThreadListItemResponseArray,
 } from './responses'
-import type { EmailItemResponse, ReplyAcceptedResponse, ThreadDetailResponse, ThreadListItemResponse } from './responses'
+import type {
+  EmailItemResponse,
+  ReplyAcceptedResponse,
+  SessionListItemResponse,
+  ThreadDetailResponse,
+  ThreadListItemResponse,
+} from './responses'
 import { err, ok } from './Result'
 import type { Result } from './Result'
 import { conflict, invalid, malformed, notFound, serverFault, unreachable } from './ResponseError'
@@ -99,5 +106,9 @@ export class AimelServerClient {
 
   markRead(emailUuid: string): Promise<Result<EmailItemResponse, ResponseError>> {
     return requestJson(`/api/emails/${emailUuid}/read`, 'POST', {}, isEmailItemResponse)
+  }
+
+  sessions(): Promise<Result<SessionListItemResponse[], ResponseError>> {
+    return request('/api/sessions', { headers: { Accept: 'application/json' } }, isSessionListItemResponseArray)
   }
 }

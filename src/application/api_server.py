@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
 from adapters.resource.email_api_resource import EmailApiResource
+from adapters.resource.session_directory_resource import SessionDirectoryApiResource
 from common.headers import HttpHeaders
 from domain.errors import EmailAlreadyDeleted, EmailNotFound
 
@@ -18,8 +19,15 @@ READ_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/read$")
 class ApiServer:
     """JSON over HTTP for the web client. Local only — this serves unauthenticated mail."""
 
-    def __init__(self, resource: EmailApiResource, host: str = "127.0.0.1", port: int = 8027):
+    def __init__(
+        self,
+        resource: EmailApiResource,
+        sessions: SessionDirectoryApiResource,
+        host: str = "127.0.0.1",
+        port: int = 8027,
+    ):
         self._resource = resource
+        self._sessions = sessions
         self._host = host
         self._port = port
 
@@ -38,6 +46,7 @@ class ApiServer:
 
     def _handler(self):
         resource = self._resource
+        sessions = self._sessions
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
@@ -47,6 +56,11 @@ class ApiServer:
                 if path == "/api/threads":
                     scope = parse_qs(query).get("scope", ["mine"])[0]
                     self._json([item.model_dump() for item in resource.threads(scope)])
+                    return
+                if path == "/api/sessions":
+                    limit = parse_qs(query).get("limit", [None])[0]
+                    items = sessions.sessions(int(limit) if limit is not None else None)
+                    self._json([item.model_dump() for item in items])
                     return
                 match = THREAD_PATH.match(self.path) or EMAIL_PATH.match(self.path)
                 if match:

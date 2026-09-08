@@ -47,6 +47,7 @@ class CliApplication:
             if args.command == "api":
                 server = ApiServer(
                     module.provide_email_api_resource(),
+                    module.provide_session_directory_resource(),
                     host=args.host,
                     port=args.port or config.web.api_port,
                 )
