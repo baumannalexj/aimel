@@ -3,7 +3,7 @@ import { Actor, parseActor } from './Actor'
 import { EmailState, parseEmailState } from './EmailState'
 
 export class Email {
-  id: string
+  emailUuid: string
   actor: Actor
   state: EmailState
   sentAt: string
@@ -13,7 +13,7 @@ export class Email {
   preview: string
 
   constructor(
-    id: string,
+    emailUuid: string,
     actor: Actor,
     state: EmailState,
     sentAt: string,
@@ -22,7 +22,7 @@ export class Email {
     bodyHtml: string,
     preview: string,
   ) {
-    this.id = id
+    this.emailUuid = emailUuid
     this.actor = actor
     this.state = state
     this.sentAt = sentAt
