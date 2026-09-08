@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-
+from common.datetime_utils import parse_or_now
 from common.thread_renderer import ThreadRenderer
 from domain.commands import (
     EmailDelete,
@@ -179,15 +178,9 @@ class InboxService:
             references=tuple(captured.headers.get("references", "").split()),
             body_html=HtmlBody(captured.body_html),
             body_text=captured.body_text,
-            sent_at=_captured_at(captured.received_at),
+            sent_at=parse_or_now(captured.received_at),
         )
 
-
-def _captured_at(value: str) -> datetime:
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return now()
 
 
 def _actor_of(captured: CapturedMessage) -> Actor:

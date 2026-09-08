@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
+
+from common.datetime_utils import from_iso8601_string, to_iso8601_string
 
 from domain.commands import SentEmail
 from domain.message import (
@@ -256,7 +257,7 @@ class SqliteEmailRepository(IEmailRepository):
                     subject=EmailSubject(row["subject"]),
                     message_count=row["count"],
                     latest_email_id=latest[0]["uuid"] if latest else "",
-                    updated_at=_require(row["updated_at"], "updated_at"),
+                    updated_at=from_iso8601_string(row["updated_at"], "updated_at"),
                 )
             )
         return summaries
@@ -274,7 +275,7 @@ def _content_binds(sent: SentEmail | Correspondence) -> dict[str, Any]:
         "refs": " ".join(sent.references),
         "body_html": sent.body_html.markup,
         "body_text": sent.body_text,
-        "sent_at": _iso(sent.sent_at),
+        "sent_at": to_iso8601_string(sent.sent_at),
     }
 
 
@@ -282,14 +283,14 @@ def _move_binds(content: Correspondence) -> dict[str, Any]:
     return _content_binds(content) | {
         "uuid": content.id,
         "thread_uuid": content.thread_uuid,
-        "created_at": _iso(content.created_at),
+        "created_at": to_iso8601_string(content.created_at),
     }
 
 
 def _to_message(row: Row, state: MessageState) -> Message:
     content = Correspondence(
         id=row["uuid"],
-        created_at=_require(row["created_at"], "created_at"),
+        created_at=from_iso8601_string(row["created_at"], "created_at"),
         thread_uuid=row["thread_uuid"],
         session=SessionId(row["session"]),
         subject=EmailSubject(row["subject"]),
@@ -301,25 +302,16 @@ def _to_message(row: Row, state: MessageState) -> Message:
         references=tuple(row["refs"].split()),
         body_html=HtmlBody(row["body_html"]),
         body_text=row["body_text"],
-        sent_at=_require(row["sent_at"], "sent_at"),
+        sent_at=from_iso8601_string(row["sent_at"], "sent_at"),
     )
     if state is MessageState.UNREAD:
         return UnreadMessage(content=content)
     if state is MessageState.READ:
-        return ReadMessage(content=content, read_at=_require(row["read_at"], "read_at"))
+        return ReadMessage(content=content, read_at=from_iso8601_string(row["read_at"], "read_at"))
     return DeletedMessage(
         content=content,
-        deleted_at=_require(row["deleted_at"], "deleted_at"),
+        deleted_at=from_iso8601_string(row["deleted_at"], "deleted_at"),
         previous_state=MessageState(row["previous_state"]),
     )
 
 
-def _iso(moment: datetime) -> str:
-    """Microseconds, so two emails in the same second still sort deterministically."""
-    return moment.isoformat(timespec="microseconds")
-
-
-def _require(value: str, field: str) -> datetime:
-    if not value:
-        raise ValueError(f"{field} is empty in a row that must have it")
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))

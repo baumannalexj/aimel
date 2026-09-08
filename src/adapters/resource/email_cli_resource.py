@@ -52,10 +52,10 @@ class EmailCliResource:
         return self._inbox.delete(request.to_domain())
 
     def read(self, request: EmailIdRequest) -> ReadMessage:
-        return self._inbox.read(request.email_id)
+        return self._inbox.read(str(request.email_id))
 
     def history(self, request: EmailIdRequest) -> list[Message]:
-        return self._inbox.history(request.email_id)
+        return self._inbox.history(str(request.email_id))
 
     def poll(self, request: PollRequest) -> list[UnreadMessage]:
         return self._inbox.poll(self.mailbox_for(request), limit=request.limit)
