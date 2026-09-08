@@ -3,9 +3,10 @@
 One request per operation, so no field is ever meaningless — a reply always names the email it
 answers, and opening a thread never carries a thread id.
 
-`html` is the body that renders in the viewer; `text` is only the plain-text alternative part for a
-client that cannot render HTML, and is derived from `html` when omitted. The subject is deliberately
-not settable on a reply: it is the thread's context, fixed when the thread opens.
+`html` is the body that renders in the viewer and is required — there is no such thing as an empty
+email. The plain-text alternative part is always derived from it (`HtmlBody.to_plain_text()`), so
+there is no `text` field to set here. The subject is deliberately not settable on a reply: it is the
+thread's context, fixed when the thread opens.
 """
 
 from __future__ import annotations
@@ -25,8 +26,7 @@ class _Request(BaseModel):
 class SendNewThreadRequest(_Request):
     session: UUID
     title: str = Field(min_length=1)  # becomes the subject, set once
-    html: str = ""
-    text: str = ""
+    html: str = Field(min_length=1)
     actor: Actor = Actor.AI_AGENT
 
     def to_domain(
@@ -39,15 +39,13 @@ class SendNewThreadRequest(_Request):
             recipient=recipient,
             author=self.actor,
             body_html=HtmlBody(self.html),
-            body_text=self.text,
         )
 
 
 class ReplyRequest(_Request):
     session: UUID
     email_id: UUID  # the email being answered
-    html: str = ""
-    text: str = ""
+    html: str = Field(min_length=1)
     actor: Actor = Actor.AI_AGENT
     include_history: IncludeHistory = IncludeHistory.ALL
 
@@ -59,7 +57,6 @@ class ReplyRequest(_Request):
             recipient=recipient,
             author=self.actor,
             body_html=HtmlBody(self.html),
-            body_text=self.text,
             include_history=self.include_history,
         )
 

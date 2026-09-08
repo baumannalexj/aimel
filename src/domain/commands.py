@@ -27,7 +27,6 @@ class EmailSendNewThread(DomainModel):
     recipient: Email
     author: Actor
     body_html: HtmlBody
-    body_text: str
 
 
 @dataclass(frozen=True)
@@ -40,7 +39,6 @@ class EmailReply(DomainModel):
     recipient: Email
     author: Actor
     body_html: HtmlBody
-    body_text: str
     include_history: IncludeHistory = IncludeHistory.ALL
 
     def __post_init__(self) -> None:

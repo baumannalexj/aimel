@@ -42,16 +42,16 @@ class CliRequestMarshaller:
         builders = {
             "send": lambda: SendNewThreadRequest(
                 session=self._session(args), title=args.title, html=args.html,
-                text=args.text, actor=_actor(args.as_human),
+                actor=_actor(args.as_human),
             ),
             "reply": lambda: ReplyRequest(
                 session=self._session(args), email_id=args.email_id, html=args.html,
-                text=args.text, actor=Actor.AI_AGENT,
+                actor=Actor.AI_AGENT,
                 include_history=_history(args.no_history),
             ),
             "say": lambda: ReplyRequest(
                 session=self._session(args), email_id=args.email_id, html=args.html,
-                text=args.text, actor=Actor.HUMAN,
+                actor=Actor.HUMAN,
                 include_history=_history(args.no_history),
             ),
             "delete": lambda: DeleteRequest(email_id=args.email_id),

@@ -8,6 +8,8 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.responses import EmailDeletedResponse, EmailSentResponse
 from application.module_dependencies.application_module import ApplicationModule
@@ -59,6 +61,9 @@ class CliApplication:
                 config,
                 as_json=args.json,
             )
+        except ValidationError as exc:
+            # A clean edge-of-CLI failure instead of a validation traceback.
+            raise SystemExit(str(exc)) from None
         finally:
             module.close()
 
@@ -79,7 +84,6 @@ class CliApplication:
         send = sub.add_parser("send", help="open a new thread")
         send.add_argument("--title", required=True, help="the thread's subject, set once")
         send.add_argument("--html", default="")
-        send.add_argument("--text", default="")
         send.add_argument("--as-human", action="store_true")
 
         for name, help_text in (
@@ -89,7 +93,6 @@ class CliApplication:
             cmd = sub.add_parser(name, help=help_text)
             cmd.add_argument("email_id", help="the email being answered")
             cmd.add_argument("--html", default="")
-            cmd.add_argument("--text", default="")
             cmd.add_argument("--no-history", action="store_true")
 
         for name, help_text in (
