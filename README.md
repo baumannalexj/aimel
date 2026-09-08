@@ -1,115 +1,117 @@
 # aimel
 
-Local email for talking to Claude agents. One [Mailpit](https://mailpit.axllent.org/) container is the
-whole backend, plus a stdlib-only Python CLI that gives agents a threading contract. Nothing leaves the
-machine and there are no accounts — any address at the configured domain just works.
+Local email for talking to Claude agents. This service owns the mail in SQLite; a
+[Mailpit](https://mailpit.axllent.org/) container is the SMTP intake. Nothing leaves the machine and
+there are no accounts — any address at the configured domain just works.
 
 ## Run
 
-First time:
+Everything goes through `uv`; there are no wrapper scripts.
 
 ```sh
 git clone git@github.com:baumannalexj/aimel.git && cd aimel
-scripts/aimel up                 # prompts for the mail database dir, remembers the answer
-scripts/aimel install-skill      # drops the agent contract in ~/.claude/skills/aimel
-scripts/aimel open               # or just: open http://localhost:8025
+uv sync                      # installs the project and its groups
+uv run aimel up              # prompts for the mail database dir, remembers the answer
+uv run aimel install-skill    # drops the agent contract in ~/.claude/skills/aimel
+uv run aimel serve            # the reply client, http://127.0.0.1:8026
 ```
 
-Day to day:
+From anywhere else, point `uv` at the project — it keeps your working directory, which matters
+because session detection reads `cwd`:
 
 ```sh
-scripts/aimel up                 # start the container (idempotent)
-scripts/aimel status             # resolved config + mailpit health + your addresses
-scripts/aimel threads            # what is open for this session
-scripts/aimel poll               # unread mail for this session
-scripts/aimel down               # stop the container; mail survives in the database
-scripts/aimel logs -f            # follow container logs
-```
-
-`scripts/aimel` is the only entrypoint you need — it runs the CLI through `uv` when available and falls
-back to `python3` otherwise. Call it from any directory; it resolves its own repo path and leaves your
-working directory alone, which matters because session detection reads `cwd`.
-
-To bypass the runner and drive the CLI directly:
-
-```sh
-uv run --project /path/to/aimel python /path/to/aimel/aimel.py status
-AIMEL_PYTHON=python3 scripts/aimel status     # force a specific interpreter
+uv run --project ~/sideprojects/aimel aimel poll
 ```
 
 | Port | Use |
 |---|---|
 | `1025` | SMTP — everything is sent here |
-| `8025` | Web UI + REST API — you read in the browser, agents poll the API |
+| `8025` | Mailpit viewer, the raw intake spool |
+| `8026` | `aimel serve` — threads collapsed, and the only place you can reply in a browser |
 
-## One thread per thought
+## Threads are anchored to emails
 
-The point of the CLI. A thread is one unit of work, so if you ask for five things and two are
-unrelated, an agent opens three threads instead of one mega-message. Subjects are scoped by session:
+You open a thread, then reply to a specific email by id. There is no thread name: the thread's uuid
+lives in the database and a reply inherits it from whatever email it answers.
 
+```sh
+uv run aimel send --title "fix the flaky auth test" --html "<p>Reproduced it.</p>"
+#   email  1d2addc5-…      thread 41d01f80-…
+
+uv run aimel reply 1d2addc5-… --html "<p>Fixed and green.</p>"   # as the agent
+uv run aimel say   1d2addc5-… --html "<p>ship it</p>"            # as you
 ```
-Subject: 0bd9c0c5: fix the flaky auth test
-X-Aimel-Session: 0bd9c0c5-5b21-44be-9a3b-2793b5788d05
-X-Aimel-Thread: fix-the-flaky-auth-test
-```
 
-Replies chain through `In-Reply-To` and `References`, and each thread gets a ledger at
-`<mail_dir>/threads/<session8>/<slug>.json` tracking its subject and message ids.
+`--title` becomes the subject, set once when the thread opens; replies reuse it. Replies chain
+through `In-Reply-To`/`References` and embed the thread history, newest first, in a collapsible
+block. Pass `--no-history` to skip that.
 
 ## Commands
 
 | | |
 |---|---|
-| `aimel send --title "…" --html "…"` | open a thread (agent → you); slug derived from the title |
-| `aimel send --thread <slug> --html "…"` | continue it |
-| `aimel say --thread <slug> --html "…"` | reply as you (you → agent) |
-| `aimel poll [--thread <slug>] [--all]` | unread mail for this session |
-| `aimel read <id> [--keep-unread]` | print a message, mark it read |
-| `aimel threads` | open threads for this session |
-| `aimel status` | resolved config and Mailpit health |
-| `aimel up` / `down` / `restart` / `logs` | container lifecycle |
-| `aimel settings --set key=value` | change a saved setting |
+| `send --title "…" --html "…"` | open a thread |
+| `reply <email_id> --html "…"` | continue it as the agent |
+| `say <email_id> --html "…"` | continue it as you |
+| `poll [--as-human]` | unread mail, newest first |
+| `read <email_id>` | print it, move it to the read table |
+| `delete <email_id>` | soft delete — stamps `deleted_at`, removes nothing |
+| `deleted` | what has been soft-deleted |
+| `history <email_id>` | the whole thread, newest first, deleted included |
+| `threads` | one row per thread, with the latest email id to reply to |
+| `drain [--purge]` | claim spool mail into our store, threading by `In-Reply-To` |
+| `serve [--port]` | the reply client |
+| `up` / `down` / `restart` / `logs` | spool lifecycle |
+| `status` / `settings [--set k=v]` | resolved config |
 
-`--json` works on `poll`, `read`, `threads` and `send` for machine-readable output. Bodies can also be
-piped on stdin instead of `--html` / `--text`.
+`--json` works on the read commands. `--session <uuid>` overrides session detection.
+
+## Tests
+
+```sh
+uv run python -m unittest discover -s test -t .
+```
+
+`test/` mirrors `src/`, so a file's tests are findable by path alone.
 
 ## Session detection
 
-Agents don't get a session id in the environment, so `aimel` takes the newest transcript under
-`~/.claude/projects/` — preferring the project directory matching `cwd`, then falling back machine-wide.
-That's right for one active session; with several running at once, pass `--session <uuid>` or set
-`AIMEL_SESSION`.
+Agents get no session id in the environment, so `aimel` takes the newest transcript under
+`~/.claude/projects/` — preferring the project directory matching `cwd`, then falling back
+machine-wide. Right for one active session; with several, pass `--session` or set `AIMEL_SESSION`.
 
 ## Settings
 
-Saved to `~/.config/aimel/settings.json` (see `settings.example.json`). Any key is overridable by an
-`AIMEL_<KEY>` environment variable.
+Saved to `~/.config/aimel/settings.json`. Any key is overridable by an `AIMEL_<KEY>` env var.
 
 | Key | Default |
 |---|---|
-| `mail_dir` | `~/_claude-email` — holds `mailpit.db` and the thread ledger |
+| `mail_dir` | `~/_claude-email` — holds `mailpit.db` and `inbox/mail.db` |
 | `domain` | `aimel.com` |
 | `human_address` | `{user}@{domain}` |
 | `agent_address` | `claude-{session8}@{domain}` |
-| `subject_template` | `{session8}: {title}` |
+| `subject_template` | `{title}` |
 | `smtp_host` / `smtp_port` | `localhost` / `1025` |
 | `api_base` | `http://localhost:8025` |
-| `max_messages` | `5000` |
+| `purge_after_drain` | `false` |
 
-Address and subject values are templates over `{user}`, `{domain}`, `{session}`, `{session8}`,
-`{thread}`, `{title}`. Your own address is derived from the OS username at runtime, so it is never
-committed here.
+Addresses and subjects template over `{service}`, `{user}`, `{domain}`, `{session}`, `{session8}`,
+`{title}`. Your own address derives from the OS username at runtime, so it is never committed here.
 
-## Known rough edge
+## Storage
 
-Mailpit's web UI can render mail but not compose it, so replying to an agent goes through
-`aimel say`, not the browser. A small compose page is the obvious next iteration.
+Ours is `<mail_dir>/inbox/mail.db`, one table per state (`unread`, `read`, `deleted`). SQLite is
+embedded — no server, no port. Read it any time:
+
+```sh
+sqlite3 ~/_claude-email/inbox/mail.db "select subject, author, sent_at from unread limit 5;"
+```
+
+Mail currently lives in both our store and the spool, because `purge_after_drain` is off while the
+Mailpit viewer is still useful.
 
 ## Requirements
 
-Docker, and either [uv](https://docs.astral.sh/uv/) or Python 3.12+. There are no third-party
-packages — `pyproject.toml` declares an empty dependency set, so `uv` is here for a pinned interpreter
-and a reproducible environment rather than to install anything.
-
-On a Mac running Colima, `docker compose` may not exist as a plugin; the runner falls back to the
-standalone `docker-compose` binary automatically.
+Docker and [uv](https://docs.astral.sh/uv/). The only third-party dependency is pydantic, scoped to
+the `adapters` group. On a Mac running Colima, `docker compose` often is not installed as a plugin;
+the runtime falls back to the standalone `docker-compose` binary automatically.

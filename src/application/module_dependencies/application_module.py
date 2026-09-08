@@ -18,13 +18,14 @@ class ApplicationModule:
 
     def __init__(self, config: AppConfig):
         self.config = config
-        self.common_module = CommonModule(config.naming)
+        self.common_module = CommonModule(config.naming, config.paths)
         self.database_module = DatabaseModule(config.database)
         self.repository_module = RepositoryModule(
             self.database_module.provide_database_client()
         )
         self.client_module = ClientModule(
-            config.smtp, config.mailbox, config.naming.service_name
+            config.smtp, config.mailbox, config.naming.service_name,
+            config.paths.compose_file,
         )
         self.core_module = CoreModule(
             self.repository_module.provide_email_repository(),
@@ -57,6 +58,12 @@ class ApplicationModule:
 
     def provide_email_cli_resource(self) -> EmailCliResource:
         return self._email_cli_resource
+
+    def provide_container_runtime(self):
+        return self.client_module.provide_container_runtime()
+
+    def provide_skill_installer(self):
+        return self.common_module.provide_skill_installer()
 
     def provide_session_colors(self) -> SessionColorPalette:
         return self.common_module.provide_session_colors()

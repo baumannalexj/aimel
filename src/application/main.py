@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import webbrowser
+from pathlib import Path
 
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.responses import EmailDeletedResponse, EmailSentResponse
@@ -23,9 +25,20 @@ class CliApplication:
         args = self.parser().parse_args(argv)
         if args.command == "settings":
             return self._settings(args)
+        if args.command == "up":
+            # Chosen and saved before the composition root reads config, so the db path is right.
+            self._choose_mail_dir()
         config = self._config_loader.load()
         module = ApplicationModule(config)
         try:
+            if args.command in {"up", "down", "restart", "logs"}:
+                return self._lifecycle(args, module, config)
+            if args.command == "install-skill":
+                print(f"installed skill -> {module.provide_skill_installer().install()}")
+                return 0
+            if args.command == "open":
+                webbrowser.open(config.mailbox.api_base)
+                return 0
             if args.command == "status":
                 return self._status(config)
             if args.command == "serve":
@@ -89,6 +102,14 @@ class CliApplication:
         poll.add_argument("--as-human", action="store_true")
         poll.add_argument("--limit", type=int, default=50)
 
+        sub.add_parser("up", help="start the intake spool")
+        sub.add_parser("down", help="stop it; mail survives in the database")
+        sub.add_parser("restart", help="bounce it")
+        logs = sub.add_parser("logs", help="spool logs")
+        logs.add_argument("-f", "--follow", action="store_true")
+        sub.add_parser("install-skill", help="copy the agent contract into ~/.claude/skills")
+        sub.add_parser("open", help="open the spool viewer in a browser")
+
         sub.add_parser("threads", help="threads for this session")
         sub.add_parser("deleted", help="soft-deleted mail")
         sub.add_parser("status", help="resolved config and health")
@@ -109,7 +130,7 @@ class CliApplication:
     # --- commands ---
 
     def _settings(self, args: argparse.Namespace) -> int:
-        """Deliberately skips the composition root — scripts/aimel calls this before the db exists."""
+        """Deliberately skips the composition root — it must work before the database exists."""
         settings = self._config_loader.raw()
         for pair in args.set:
             key, _, value = pair.partition("=")
@@ -120,6 +141,31 @@ class CliApplication:
             self._config_loader.save(settings)
         print(json.dumps(settings, indent=2, sort_keys=True))
         return 0
+
+    def _choose_mail_dir(self) -> None:
+        settings = self._config_loader.raw()
+        default = str(settings.get("mail_dir", DEFAULTS["mail_dir"]))
+        answer = ""
+        if sys.stdin.isatty():
+            answer = input(f"email database dir [{default}]: ").strip()
+        settings["mail_dir"] = str(Path(answer or default).expanduser())
+        self._config_loader.save(settings)
+
+    def _lifecycle(self, args, module: ApplicationModule, config: AppConfig) -> int:
+        runtime = module.provide_container_runtime()
+        if args.command == "up":
+            runtime.up(config.mail_dir)
+            if not runtime.wait_until_ready(f"{config.mailbox.api_base}/api/v1/info"):
+                print("the spool did not come up - try: uv run aimel logs", file=sys.stderr)
+                return 1
+            return self._status(config)
+        if args.command == "down":
+            runtime.down(config.mail_dir)
+            return 0
+        if args.command == "restart":
+            runtime.restart(config.mail_dir)
+            return 0
+        return runtime.logs(config.mail_dir, follow=args.follow)
 
     def _dispatch(
         self,

@@ -64,6 +64,11 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 - [x] Light tint, never bold; honours `NO_COLOR` and non-TTY
 
 ### Developer experience
+- [x] `uv run aimel` as the only entrypoint — no wrapper scripts; `up`/`down`/`restart`/`logs`/
+      `install-skill`/`open` are Python commands behind an `IContainerRuntime` port
+- [x] Installed editable, so source edits need no re-sync
+- [x] SQL in triple-quoted statements in `adapters/repository/sql/`, values always named binds, and
+      `IDatabaseClient.identifier()` validating the one place a table name varies
 - [x] Hexagonal layout with a manual composition root, no DI framework
 - [x] One model per shape, no nullable domain fields
 - [x] `uv` for a pinned interpreter and reproducible environment
@@ -71,6 +76,12 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
 - [x] Service name is config, not a literal in source
 
 ## Next
+
+- [ ] **Swap the hand-rolled HTTP server for a real framework** (FastAPI or Flask). `WebServer` is a
+      `BaseHTTPRequestHandler` with hand-written routing, which is exactly what the hex boundary
+      exists to make replaceable: `EmailWebResource` renders and `EmailCliResource` marshals, so the
+      framework only owns routing and serialisation. Needs the dependency added, scoped to the
+      `adapters` group.
 
 - [ ] **Turn on `purge_after_drain`.** Deliberately off while Mailpit's UI is the only reader; mail
       currently lives in both stores.
@@ -84,7 +95,7 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
       and `SendMessageResponse.ok_no_content()`. Needs the dependency added.
 - [ ] **Two remaining nullables.** `PollRequest.thread` and `IEmailRepository.find` still return or
       carry `None`; both want a second shape instead.
-- [ ] **More tests.** Two exist (`scripts/test`): `InboxService.read` delegation, and
+- [ ] **More tests.** Two exist (`uv run python -m unittest discover -s test -t .`): `InboxService.read` delegation, and
       `SqliteEmailRepository.soft_delete` proving the statements run on the transaction client.
       Untested: `send_email` chain building, `drain` idempotency, the marshaller.
 

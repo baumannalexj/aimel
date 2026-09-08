@@ -19,6 +19,7 @@ DEFAULTS: dict[str, object] = {
     "subject_template": "{title}",
     "max_messages": 5000,
     "purge_after_drain": False,
+    "skill_target_dir": "~/.claude/skills/aimel",
 }
 
 
@@ -51,12 +52,20 @@ class NamingConfig:
 
 
 @dataclass(frozen=True)
+class PathsConfig:
+    compose_file: Path
+    skill_source: Path
+    skill_target_dir: Path
+
+
+@dataclass(frozen=True)
 class AppConfig:
     mail_dir: Path
     database: DatabaseConfig
     smtp: SmtpConfig
     mailbox: MailboxConfig
     naming: NamingConfig
+    paths: PathsConfig
     purge_after_drain: bool
 
 
@@ -116,6 +125,11 @@ class ConfigLoader:
                 agent_address=str(settings["agent_address"]),
                 subject_template=str(settings["subject_template"]),
             ),
+            paths=PathsConfig(
+                compose_file=_repo_root() / "compose.yml",
+                skill_source=_repo_root() / "skill" / "SKILL.md",
+                skill_target_dir=Path(str(settings["skill_target_dir"])).expanduser(),
+            ),
             purge_after_drain=_as_bool(settings["purge_after_drain"]),
         )
 
@@ -129,3 +143,9 @@ def _current_user() -> str:
         return getpass.getuser()
     except Exception:
         return os.environ.get("USER", "human")
+
+
+def _repo_root() -> Path:
+    """src/common/config.py -> repo root. Overridable for an installed copy."""
+    override = os.environ.get("AIMEL_REPO_ROOT")
+    return Path(override).expanduser() if override else Path(__file__).resolve().parents[2]
