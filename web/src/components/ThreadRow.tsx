@@ -1,3 +1,4 @@
+import { hashToHex } from '../domain/ParticipantColor'
 import type { ThreadListItem } from '../types/contract'
 import { Card } from './composition/Card'
 import { Clickable } from './composition/Clickable'
@@ -26,7 +27,7 @@ export function ThreadRow({ thread, selected, onOpen }: Props) {
             </span>
           )}
           <small className="meta">
-            <span className="chip" style={{ background: thread.sessionColor }}>{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
+            <span className="chip" style={{ background: hashToHex(thread.session) }}>{thread.sessionShort}</span> · {thread.emailCount} email(s) · {thread.updatedAt}
           </small>
         </Card>
       </Clickable>
