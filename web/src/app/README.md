@@ -14,22 +14,21 @@ into the running app.
 
 ## Router
 
-`routes.ts` holds the route table: a list of path patterns (`/`, `/threads/:threadUuid`) and, for
-each, a `build` function that turns matched params into a typed `RouteMatch` (a discriminated union
-tagged by `name`: `'inbox' | 'thread' | 'not-found'`). `matchRoute(pathname)` runs the table and
-returns one of those — never a loose record.
+`routes.ts` holds the route table: a list of path patterns (`/`, `/inbox`, `/emails`,
+`/emailthreads/:threadUuid`, `/emails/:emailUuid`) and, for each, a `build` function that turns
+matched params into a typed `RouteMatch` (a discriminated union tagged by `name`:
+`'inbox' | 'thread' | 'email' | 'not-found'`). `matchRoute(pathname)` runs the table and returns one
+of those — never a loose record.
 
-`Router.tsx` reads `window.location.pathname`, calls `matchRoute`, and renders the root page for
-whichever variant comes back (`pages/InboxPage`, `pages/ThreadPage`, or an inline not-found node),
-passing typed params as props. It listens for `popstate` to handle browser back/forward, and exposes
-a `useNavigate()` hook — pages call `navigate(path)` to push a new URL via `history.pushState` and
-re-render, without a full page reload.
-
-`pages/` holds the root pages the table points at. Right now `InboxPage` and `ThreadPage` are
-placeholders; the real inbox/thread views move in once the data layer restructure lands.
+`Router` is a provider, not a page switch: it reads `window.location.pathname`, calls `matchRoute`,
+and exposes the result plus a `navigate()` function through `useRoute()` / `useNavigate()`. It
+listens for `popstate` to handle browser back/forward and re-match from the URL; `navigate(path)`
+pushes a new entry via `history.pushState` and updates the route, without a full page reload. Callers
+(`App.tsx`) decide what to render for each `RouteMatch` themselves — there is no `pages/` indirection,
+since the inbox/thread views already need the live data layer, not a placeholder.
 
 To add a route: add an entry to `routeTable` in `routes.ts` with its own `RouteMatch` variant, then
-add a case in `Router.tsx`'s `renderRoute` that renders the corresponding page.
+handle that variant wherever `useRoute()` is read.
 
-Nothing here is mounted yet — `App.tsx` still owns the running app. Wiring `Router` in is a
-follow-up, done once the data layer it depends on is stable.
+`App.tsx` mounts `<Router>` at the root, inside the error boundary, and renders the inbox/thread pane
+from `useRoute()` directly.
