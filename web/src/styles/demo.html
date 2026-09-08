@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>aimel style guide demo</title>
+  <link rel="stylesheet" href="./index.css" />
+  <style>
+    /* demo-only layout scaffolding, not part of the design system */
+    .demo-section { margin-bottom: var(--space-6); }
+    .demo-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-2); }
+    .swatch { display: flex; align-items: center; gap: var(--space-2); }
+    .swatch-box { width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+  </style>
+</head>
+<body>
+  <main style="max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4);">
+    <div class="demo-row" style="justify-content: space-between;">
+      <h1>Style guide demo</h1>
+      <button type="button" class="secondary-button" id="scheme-toggle">Toggle dark mode</button>
+    </div>
+
+    <section class="demo-section">
+      <h2>Buttons</h2>
+      <div class="demo-row">
+        <button type="button" class="primary-button">Send</button>
+        <button type="button" class="secondary-button">Save draft</button>
+        <button type="button" class="primary-button" disabled>Send</button>
+        <button type="button" class="secondary-button" disabled>Save draft</button>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Chips (per-session, colors are inline like the real app)</h2>
+      <div class="demo-row">
+        <span class="chip" style="background: #44BB99; color: #06231b;">a1b2c3d4</span>
+        <span class="chip" style="background: #77AADD; color: #08203e;">e5f6a7b8</span>
+        <span class="chip" style="background: #EE8866; color: #3a1200;">c9d0e1f2</span>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Notice</h2>
+      <p class="notice">No mail yet.</p>
+    </section>
+
+    <section class="demo-section">
+      <h2>Thread row + meta</h2>
+      <ul style="border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
+        <li class="thread-row">
+          <span>fix the flaky auth test</span>
+          <small class="meta">a1b2c3d4 · 3 email(s) · 2026-09-06</small>
+        </li>
+        <li class="thread-row">
+          <span>style guide follow-up</span>
+          <small class="meta">e5f6a7b8 · 1 email(s) · 2026-09-07</small>
+        </li>
+      </ul>
+    </section>
+
+    <section class="demo-section">
+      <h2>Email panel</h2>
+      <div class="email">
+        <p style="margin: 0 0 var(--space-2);"><strong>claude-a1b2c3d4@aimel.com</strong></p>
+        <p style="margin: 0;">Reproduced it. Root cause was a session race in the LD client init.</p>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Textarea</h2>
+      <textarea rows="3" placeholder="Reply…" style="width: 100%;"></textarea>
+    </section>
+
+    <section class="demo-section">
+      <h2>Type scale</h2>
+      <div class="demo-row" style="flex-direction: column; align-items: flex-start;">
+        <span style="font-size: var(--text-xs);">text-xs — chip labels</span>
+        <span style="font-size: var(--text-sm);">text-sm — meta, small</span>
+        <span style="font-size: var(--text-base);">text-base — body</span>
+        <span style="font-size: var(--text-lg);">text-lg — h3</span>
+        <span style="font-size: var(--text-xl);">text-xl — h2</span>
+        <span style="font-size: var(--text-2xl);">text-2xl — h1</span>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Surface &amp; text ramp</h2>
+      <div class="demo-row">
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-surface);"></span>surface</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-surface-raised);"></span>surface-raised</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-surface-sunken);"></span>surface-sunken</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-border);"></span>border</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-border-strong);"></span>border-strong</div>
+      </div>
+      <div class="demo-row">
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-accent);"></span>accent</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-accent-strong);"></span>accent-strong</div>
+        <div class="swatch"><span class="swatch-box" style="background: var(--color-accent-muted);"></span>accent-muted</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Preview both schemes without touching OS settings. Not part of the design system.
+    const btn = document.getElementById('scheme-toggle')
+    let dark = false
+    btn.addEventListener('click', () => {
+      dark = !dark
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      btn.textContent = dark ? 'Toggle light mode' : 'Toggle dark mode'
+    })
+  </script>
+</body>
+</html>
