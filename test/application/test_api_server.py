@@ -20,6 +20,8 @@ from adapters.database.sqlite_database_client import SqliteDatabaseClient, Sqlit
 from adapters.repository.sqlite_email_repository import SqliteEmailRepository
 from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.session_directory_resource import SessionDirectoryApiResource
+from adapters.resource.skill_resource import SkillResource
+from common.skill_catalog import SkillCatalog
 from application.api_server import ApiServer
 from common.config import NamingConfig
 from common.naming import NamingPolicy
@@ -59,10 +61,21 @@ class EmailByUuidRouteTest(unittest.TestCase):
         resource = EmailApiResource(self.inbox, NamingPolicy(NAMING))
         sessions = SessionDirectoryApiResource(SessionDirectory(Path(directory.name) / "no-such-dir"))
 
+        self.skill_directory = Path(directory.name) / "skill"
+        self.skill_directory.mkdir()
+        # Named SKILL.md with frontmatter, exactly like the real one. A fixture called aimel.md
+        # with no frontmatter is what let the name and summary both ship wrong.
+        (self.skill_directory / "SKILL.md").write_text(
+            "---\nname: aimel\ndescription: How an agent talks to a human by email.\n---\n\n"
+            "# aimel\n\nBody text.\n",
+            encoding="utf-8",
+        )
+        skills = SkillResource(SkillCatalog(self.skill_directory))
+
         # Bypass ApiServer.serve_forever so the test can pick an ephemeral port and shut down
         # cleanly; the handler class it builds is the thing under test either way.
         self._server = ThreadingHTTPServer(
-            ("127.0.0.1", 0), ApiServer(resource, sessions)._handler()
+            ("127.0.0.1", 0), ApiServer(resource, sessions, skills)._handler()
         )
         self.addCleanup(self._server.server_close)
         threading.Thread(target=self._server.serve_forever, daemon=True).start()
@@ -82,11 +95,22 @@ class EmailByUuidRouteTest(unittest.TestCase):
         ).content.id
 
     def _get(self, path: str) -> tuple[int, dict]:
+        status, _, body = self._get_text(path)
+        return status, json.loads(body)
+
+    def _get_json(self, path: str) -> tuple[int, dict]:
+        return self._get(path)
+
+    def _get_text(self, path: str) -> tuple[int, str, str]:
         conn = http.client.HTTPConnection("127.0.0.1", self._port, timeout=5)
         self.addCleanup(conn.close)
         conn.request("GET", path)
         response = conn.getresponse()
-        return response.status, json.loads(response.read())
+        return (
+            response.status,
+            response.getheader("Content-Type") or "",
+            response.read().decode("utf-8"),
+        )
 
     def test_an_unknown_uuid_returns_404_not_a_dropped_connection(self) -> None:
         status, body = self._get(f"/api/emails/{UNKNOWN_UUID}")
@@ -102,6 +126,38 @@ class EmailByUuidRouteTest(unittest.TestCase):
         self.assertEqual(status, thread_status)
         self.assertEqual(body, thread_body)
         self.assertEqual(body["threadUuid"], body["emails"][0]["threadUuid"])
+
+    def test_the_skills_listing_says_what_each_skill_is_and_where_to_get_it(self) -> None:
+        status, body = self._get_json("/api/skills")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(body), 1)
+        listed = body[0]
+        self.assertEqual(listed["name"], "aimel")
+        self.assertEqual(listed["summary"], "How an agent talks to a human by email.")
+        self.assertEqual(listed["markdownPath"], "/api/skills/aimel")
+        self.assertGreater(listed["byteCount"], 0)
+    def test_a_skill_is_served_as_markdown_not_wrapped_in_json(self) -> None:
+        status, content_type, body = self._get_text("/api/skills/aimel")
+        self.assertEqual(status, 200)
+        self.assertIn("text/markdown", content_type)
+        self.assertTrue(body.startswith("---"))
+        self.assertIn("# aimel", body)
+    def test_an_unknown_skill_is_a_404(self) -> None:
+        status, body = self._get_json("/api/skills/nope")
+        self.assertEqual(status, 404)
+        self.assertIn("nope", body["error"])
+    def test_a_path_that_is_not_a_skill_name_does_not_reach_the_catalog(self) -> None:
+        """The name pattern is the guard: no traversal, no absolute paths."""
+        for path in ("/api/skills/../secrets", "/api/skills/a/b", "/api/skills/"):
+            with self.subTest(path=path):
+                status, _ = self._get_json(path)
+                self.assertEqual(status, 404)
+    def test_an_edited_skill_is_served_without_restarting(self) -> None:
+        (self.skill_directory / "SKILL.md").write_text(
+            "---\nname: aimel\ndescription: d\n---\n\nRewritten.\n", encoding="utf-8"
+        )
+        _, _, body = self._get_text("/api/skills/aimel")
+        self.assertIn("Rewritten.", body)
 
 
 if __name__ == "__main__":

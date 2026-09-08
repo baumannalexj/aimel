@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from common.session_color import SessionColorPalette
 from common.session_directory import TranscriptSession
+from common.skill_catalog import Skill
 from domain.message import Message
 from domain.thread import ThreadSummary
 
@@ -111,6 +112,25 @@ class SessionListItem(_Payload):
             name=session.name,
             context=session.context,
             lastActiveAt=session.last_active_at.isoformat(timespec="seconds"),
+        )
+
+
+class SkillListItem(_Payload):
+    name: str
+    summary: str
+    byteCount: int
+    updatedAt: str
+    #: Where to GET the markdown itself, so a client never builds the path by hand.
+    markdownPath: str
+
+    @classmethod
+    def of(cls, skill: Skill) -> "SkillListItem":
+        return cls(
+            name=skill.name,
+            summary=skill.summary,
+            byteCount=skill.byte_count,
+            updatedAt=skill.updated_at.isoformat(timespec="seconds"),
+            markdownPath=f"/api/skills/{skill.name}",
         )
 
 

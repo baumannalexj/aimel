@@ -9,6 +9,7 @@ from common.naming import NamingPolicy
 from common.session import SessionDetector
 from common.session_color import SessionColorPalette
 from common.session_directory import SessionDirectory
+from common.skill_catalog import SkillCatalog
 from common.skill_installer import SkillInstaller
 from common.thread_renderer import ThreadRenderer
 
@@ -29,6 +30,7 @@ class CommonModule:
         self._session_colors = SessionColorPalette()
         self._session_directory = SessionDirectory()
         self._skill_installer = SkillInstaller(repo_paths.skill_source(), config.skill.target_dir)
+        self._skill_catalog = SkillCatalog(repo_paths.skill_source().parent)
         self._feature_flags = FeatureFlagService.with_defaults()
 
     def provide_naming_policy(self) -> NamingPolicy:
@@ -48,6 +50,9 @@ class CommonModule:
 
     def provide_skill_installer(self) -> SkillInstaller:
         return self._skill_installer
+
+    def provide_skill_catalog(self) -> SkillCatalog:
+        return self._skill_catalog
 
     def provide_feature_flags(self) -> FeatureFlagService:
         return self._feature_flags
