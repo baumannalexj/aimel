@@ -1,6 +1,8 @@
 # UI-3c — author pill
 
-Status: **not started**
+Status: **done**. Foreground picked via WCAG relative-luminance contrast (whichever of pure
+black/white clears more contrast against the hashed background wins), reusing the existing `.chip`
+class since it already leaves color unset for inline per-participant values.
 
 Fill `web/src/components/emailpane/AuthorPill.tsx`. Props are settled; own that file only.
 
