@@ -49,7 +49,11 @@ class ApiServer:
                     return
                 match = THREAD_PATH.match(self.path)
                 if match:
-                    detail = resource.thread(match.group(1))
+                    try:
+                        detail = resource.thread(match.group(1))
+                    except EmailNotFound as missing:
+                        self._json({"error": str(missing)}, status=404)
+                        return
                     if detail is None:
                         self._json({"error": "no such email"}, status=404)
                         return

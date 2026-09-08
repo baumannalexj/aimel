@@ -5,6 +5,7 @@ from typing import Any
 from adapters.repository.sql import email_sql as sql
 from common.datetime_utils import from_iso8601_string, to_iso8601_string
 from domain.commands import SentEmail
+from domain.errors import EmailNotFound
 from domain.message import (
     Actor,
     Correspondence,
@@ -76,7 +77,7 @@ class SqliteEmailRepository(IEmailRepository):
     def _thread_uuid_of(self, email_id: str) -> str:
         rows = self._db.query(sql.SELECT_THREAD_UUID_BY_EMAIL, {"email_id": email_id})
         if not rows:
-            raise ValueError(f"cannot reply to an email that does not exist: {email_id}")
+            raise EmailNotFound(email_id)
         return rows[0]["thread_uuid"]
 
     def _reload(self, uuid: str, state: MessageState) -> Any:

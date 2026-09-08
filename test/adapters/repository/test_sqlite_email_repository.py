@@ -4,6 +4,7 @@ import unittest
 
 from adapters.repository.sql import email_sql as sql
 from adapters.repository.sqlite_email_repository import SqliteEmailRepository
+from domain.errors import EmailNotFound
 from domain.message import MessageState
 from test.fixtures.correspondence_fixtures import CorrespondenceFixtures
 from test.helpers.port_mocks import PortMocks
@@ -40,6 +41,27 @@ class SqliteEmailRepositorySoftDeleteTest(unittest.TestCase):
 
         self.assertEqual(result.previous_state, MessageState.READ)
         self.assertEqual(result.content.id, message.content.id)
+
+
+class SqliteEmailRepositoryUnknownEmailTest(unittest.TestCase):
+    """An id nobody has is a LookupError, not a ValueError phrased as if we were replying."""
+
+    def setUp(self) -> None:
+        self.database = PortMocks.database_client()
+        self.database.query.return_value = []
+        self.repository = SqliteEmailRepository(self.database)
+
+    def test_history_for_an_unknown_email_raises_email_not_found(self) -> None:
+        with self.assertRaises(EmailNotFound) as raised:
+            self.repository.history_for_email("11111111-2222-3333-4444-555555555555")
+
+        self.assertEqual(raised.exception.email_id, "11111111-2222-3333-4444-555555555555")
+
+    def test_replying_to_an_unknown_email_raises_the_same_error_as_reading_it(self) -> None:
+        with self.assertRaises(EmailNotFound):
+            self.repository.add_reply(
+                CorrespondenceFixtures.sent_email(), "nobody-has-this-id"
+            )
 
 
 if __name__ == "__main__":
