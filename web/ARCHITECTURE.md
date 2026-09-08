@@ -40,7 +40,17 @@ missing field then fails where it is built, not silently as a blank in the rende
 
 ## Rules that hold across every tier
 
-- Enums, never booleans, for anything with more than one meaningful state.
+- Enums, never booleans, for anything with more than one meaningful state. But note the compiler
+  config: `erasableSyntaxOnly` is on, so TypeScript's `enum` keyword is REJECTED — it emits runtime
+  code. Use the erasable equivalent, which behaves the same at call sites and stays exhaustive in a
+  `switch`:
+
+  ```ts
+  export const EmailState = { Unread: 'unread', Read: 'read', Deleted: 'deleted' } as const
+  export type EmailState = (typeof EmailState)[keyof typeof EmailState]
+  ```
+
+  The same rule bans constructor parameter properties, so class fields are declared explicitly.
 - Unexpected values fail loudly. An unknown enum string from the server raises rather than
   defaulting, because a silent default shows the user the wrong thing.
 - No tier reaches past the one below it.

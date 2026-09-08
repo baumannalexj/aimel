@@ -10,16 +10,21 @@
  * `type ThreadSummaryView = ThreadSummary` and so on, or disappear.
  */
 
-export enum EmailStateView {
-  Unread = 'unread',
-  Read = 'read',
-  Deleted = 'deleted',
-}
+// `enum` is rejected by erasableSyntaxOnly because it emits runtime code, so this is the erasable
+// equivalent: a frozen const object plus a union type of its values. Same call sites, same
+// exhaustiveness in a switch.
+export const EmailStateView = {
+  Unread: 'unread',
+  Read: 'read',
+  Deleted: 'deleted',
+} as const
+export type EmailStateView = (typeof EmailStateView)[keyof typeof EmailStateView]
 
-export enum ActorView {
-  Human = 'human',
-  AiAgent = 'ai_agent',
-}
+export const ActorView = {
+  Human: 'human',
+  AiAgent: 'ai_agent',
+} as const
+export type ActorView = (typeof ActorView)[keyof typeof ActorView]
 
 export interface EmailView {
   emailUuid: string
