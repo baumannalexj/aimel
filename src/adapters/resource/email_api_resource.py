@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from adapters.resource.api_responses import ThreadDetail, ThreadListItem
+from adapters.resource.api_responses import ReplyAccepted, ThreadDetail, ThreadListItem
+from adapters.resource.requests import ReplyRequest
+from common.naming import NamingPolicy
+from domain.commands import IncludeHistory
+from domain.message import Actor, SessionId
 from core.inbox_service import InboxService
 
 
 class EmailApiResource:
-    def __init__(self, inbox_service: InboxService):
+    def __init__(self, inbox_service: InboxService, naming_policy: NamingPolicy):
         self._inbox = inbox_service
+        self._naming = naming_policy
 
     def threads(self) -> list[ThreadListItem]:
         """Every session's threads — one inbox spanning agents."""
@@ -18,3 +23,25 @@ class EmailApiResource:
         """The whole thread containing that email, newest first."""
         messages = self._inbox.history(email_uuid)
         return ThreadDetail.of(messages) if messages else None
+
+    def reply(self, email_uuid: str, markup: str) -> ReplyAccepted:
+        """Answers on the thread, addressed from the answered email's session."""
+        history = self._inbox.history(email_uuid)
+        if not history:
+            raise ValueError(f"no such email: {email_uuid}")
+        session = history[0].content.session
+        request = ReplyRequest(
+            session=str(session),
+            email_id=email_uuid,
+            html=markup,
+            actor=Actor.HUMAN,
+            include_history=IncludeHistory.ALL,
+        )
+        sent = self._inbox.reply(
+            request.to_domain(
+                SessionId(str(session)),
+                self._naming.human_address(session),
+                self._naming.agent_address(session),
+            )
+        )
+        return ReplyAccepted.of(sent)

@@ -77,3 +77,12 @@ class ThreadDetail(_Payload):
             sessionShort=opener.session.short,
             emails=[EmailItem.of(message) for message in messages],
         )
+
+
+class ReplyAccepted(_Payload):
+    emailUuid: str
+    threadUuid: str
+
+    @classmethod
+    def of(cls, message: Message) -> "ReplyAccepted":
+        return cls(emailUuid=message.content.id, threadUuid=message.content.thread_uuid)

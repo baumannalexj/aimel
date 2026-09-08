@@ -40,7 +40,8 @@ class ApplicationModule:
             self.common_module.provide_naming_policy(),
         )
         self._email_api_resource = EmailApiResource(
-            self.core_module.provide_inbox_service()
+            self.core_module.provide_inbox_service(),
+            self.common_module.provide_naming_policy(),
         )
         self._cli_request_marshaller = CliRequestMarshaller(
             self.common_module.provide_session_detector()

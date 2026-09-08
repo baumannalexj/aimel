@@ -8,6 +8,7 @@ from adapters.resource.email_api_resource import EmailApiResource
 from common.headers import HttpHeaders
 
 THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
+REPLY_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/replies$")
 
 
 class ApiServer:
@@ -50,6 +51,26 @@ class ApiServer:
                     self._json(detail.model_dump())
                     return
                 self._json({"error": "not found"}, status=404)
+
+            def do_POST(self) -> None:  # noqa: N802 - stdlib naming
+                match = REPLY_PATH.match(self.path)
+                if not match:
+                    self._json({"error": "not found"}, status=404)
+                    return
+                length = int(self.headers.get("Content-Length", "0"))
+                try:
+                    sent = json.loads(self.rfile.read(length) or b"{}")
+                except json.JSONDecodeError:
+                    self._json({"error": "body must be json"}, status=400)
+                    return
+                markup = str(sent.get("html", "")).strip()
+                if not markup:
+                    self._json({"error": "html is required"}, status=422)
+                    return
+                try:
+                    self._json(resource.reply(match.group(1), markup).model_dump(), status=201)
+                except ValueError as unknown:
+                    self._json({"error": str(unknown)}, status=404)
 
             def _json(self, payload: object, status: int = 200) -> None:
                 body = json.dumps(payload).encode("utf-8")
