@@ -19,12 +19,17 @@ from ports.database_client import IDatabaseClient
 from ports.email_repository import IEmailRepository
 from ports.email_transport import IEmailTransport
 from ports.mailbox_client import CapturedMessage, IMailboxClient
+from ports.session_repository import ISessionRepository
 
 
 class PortMocks:
     @staticmethod
     def email_repository() -> Mock:
         return create_autospec(IEmailRepository, spec_set=True, instance=True)
+
+    @staticmethod
+    def session_repository() -> Mock:
+        return create_autospec(ISessionRepository, spec_set=True, instance=True)
 
     @staticmethod
     def email_transport() -> Mock:
