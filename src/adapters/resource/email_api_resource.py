@@ -6,6 +6,7 @@ from adapters.resource.api_responses import EmailItem, ReplyAccepted, ThreadDeta
 from adapters.resource.requests import ReplyRequest
 from common.naming import NamingPolicy
 from domain.commands import IncludeHistory
+from domain.errors import EmailNotFound
 from domain.message import Actor, SessionId
 from core.inbox_service import InboxService
 
@@ -33,7 +34,7 @@ class EmailApiResource:
         """Answers on the thread, addressed from the answered email's session."""
         history = self._inbox.history(email_uuid)
         if not history:
-            raise ValueError(f"no such email: {email_uuid}")
+            raise EmailNotFound(email_uuid)
         session = history[0].content.session
         request = ReplyRequest(
             session=str(session),

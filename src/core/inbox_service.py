@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from common.datetime_utils import parse_or_now
 from common.thread_renderer import ThreadRenderer
+from domain.errors import EmailAlreadyDeleted, EmailNotFound
 from domain.commands import (
     EmailDelete,
     EmailReply,
@@ -118,7 +119,7 @@ class InboxService:
         if isinstance(message, ReadMessage):
             return message
         if isinstance(message, DeletedMessage):
-            raise ValueError(f"email is deleted: {email_id}")
+            raise EmailAlreadyDeleted(email_id)
         return self._repository.mark_read(message)
 
     def delete(self, command: EmailDelete) -> DeletedMessage:
@@ -167,7 +168,7 @@ class InboxService:
     def _require(self, email_id: str) -> Message:
         message = self._repository.find(email_id)
         if message is None:
-            raise ValueError(f"no such email: {email_id}")
+            raise EmailNotFound(email_id)
         return message
 
     def _from_capture(self, captured: CapturedMessage) -> SentEmail:

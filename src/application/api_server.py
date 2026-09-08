@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from adapters.resource.email_api_resource import EmailApiResource
 from common.headers import HttpHeaders
+from domain.errors import EmailAlreadyDeleted, EmailNotFound
 
 THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
 REPLY_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/replies$")
@@ -60,10 +61,10 @@ class ApiServer:
                     self.rfile.read(int(self.headers.get("Content-Length", "0")))
                     try:
                         self._json(resource.mark_read(read_match.group(1)).model_dump())
-                    except ValueError as problem:
-                        # "email is deleted" is a state conflict; anything else means unknown uuid.
-                        status = 409 if "deleted" in str(problem) else 404
-                        self._json({"error": str(problem)}, status=status)
+                    except EmailAlreadyDeleted as deleted:
+                        self._json({"error": str(deleted)}, status=409)
+                    except EmailNotFound as missing:
+                        self._json({"error": str(missing)}, status=404)
                     return
                 match = REPLY_PATH.match(self.path)
                 if not match:
@@ -81,7 +82,7 @@ class ApiServer:
                     return
                 try:
                     self._json(resource.reply(match.group(1), markup).model_dump(), status=201)
-                except ValueError as unknown:
+                except EmailNotFound as unknown:
                     self._json({"error": str(unknown)}, status=404)
 
             def _json(self, payload: object, status: int = 200) -> None:
