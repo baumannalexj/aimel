@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { EmailItem, ThreadDetail } from '../types/contract'
 import { EmailDetail } from './EmailDetail'
 import { EmailRow } from './EmailRow'
@@ -11,7 +11,13 @@ interface Props {
 }
 
 export function Thread({ thread, onBack, onReplied }: Props) {
-  const [openEmail, setOpenEmail] = useState<EmailItem | null>(null)
+  const [openEmail, setOpenEmail] = useState<EmailItem | null>(thread.emails[0] ?? null)
+
+  // emails are newest-first; jump straight to the latest one whenever the thread changes
+  // (switching threads, or a reply landing) instead of making the user click twice.
+  useEffect(() => {
+    setOpenEmail(thread.emails[0] ?? null)
+  }, [thread.emails[0]?.emailUuid])
 
   return (
     <section>

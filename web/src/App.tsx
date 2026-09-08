@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Footer } from './app/Footer'
 import { Header } from './app/Header'
+import { Layout } from './app/Layout'
 import { Root } from './app/Root'
 import { Thread } from './components/Thread'
 import { ThreadList } from './components/ThreadList'
@@ -40,17 +41,30 @@ export default function App() {
     >
       {error ? (
         <p role="alert" className="notice">{error}</p>
-      ) : open ? (
-        <Thread
-            thread={open}
-            onBack={() => setOpen(null)}
-            onReplied={(emailUuid) => reload(emailUuid)}
-          />
       ) : (
-        <>
-          <h1>Inbox</h1>
-          <ThreadList threads={threads} onOpen={openThread} />
-        </>
+        <Layout
+          sidebar={
+            <>
+              <h1>Inbox</h1>
+              <ThreadList
+                threads={threads}
+                selectedThreadUuid={open?.threadUuid ?? null}
+                onOpen={openThread}
+              />
+            </>
+          }
+          pane={
+            open ? (
+              <Thread
+                thread={open}
+                onBack={() => setOpen(null)}
+                onReplied={(emailUuid) => reload(emailUuid)}
+              />
+            ) : (
+              <p className="notice">Pick a thread to read it.</p>
+            )
+          }
+        />
       )}
     </Root>
   )
