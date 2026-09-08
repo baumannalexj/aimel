@@ -1,5 +1,3 @@
-// SEAM — props are settled, body is not. Ticket UI-3b.
-
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import type { Email } from '../../domain/Email'
 import { Timestamp } from '../../domain/Timestamp'
