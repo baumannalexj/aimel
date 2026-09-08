@@ -1,6 +1,10 @@
 # UI-1 — timestamp display + per-participant pill colour
 
-Status: **not started**
+Status: **done** — took the ticket's suggestion: `hashToHex` hashes (FNV-1a, sync) to an index into
+the Tol-light palette ported from `session_color.py`, rather than a raw 24-bit hash, so pills stay
+readable. Also had to add `web/tsconfig.test.json` (mirrors the existing `tsconfig.node.json` split)
+since `node:test`/`node:assert` need Node ambient types that the browser app tsconfig doesn't carry —
+without it `tsc -b` failed on the new test files.
 
 Fill in two seams. Pure functions, no React, no fetch.
 
