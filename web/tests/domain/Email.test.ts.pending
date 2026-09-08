@@ -1,0 +1,29 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { Email } from './Email.ts'
+import { Actor } from './Actor.ts'
+import { EmailState } from './EmailState.ts'
+
+// The dashboard marks a thread's newest email read when you open it. Doing that to your own
+// outgoing mail deletes it from the recipient's unread queue before the agent ever polls, which
+// is exactly how a message sent from the app went unanswered.
+function emailFrom(author: Actor): Email {
+  return new Email(
+    'e1',
+    author,
+    EmailState.Unread,
+    '2026-09-08T04:25:05+00:00',
+    'someone@aimel.com',
+    'other@aimel.com',
+    '<p>hi</p>',
+    'hi',
+  )
+}
+
+test('an email the human wrote is identified as theirs, so it is never auto-read', () => {
+  assert.equal(emailFrom(Actor.Human).writtenByHuman(), true)
+})
+
+test('an email an agent wrote is not, so it still gets marked read on open', () => {
+  assert.equal(emailFrom(Actor.AiAgent).writtenByHuman(), false)
+})

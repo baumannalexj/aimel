@@ -14,10 +14,8 @@ import type { EmailThread } from './domain/EmailThread'
 import type { ThreadSummary } from './domain/ThreadSummary'
 import { EmailRepository } from './repository/EmailRepository'
 
-// Both are display-only. The address is whose inbox this is; mailpit is the raw spool, handy when
-// you want to see what actually went over SMTP.
+// Display only: whose inbox this is.
 const MAILBOX = 'alexander.baumann@aimel.com'
-const MAILPIT_URL = 'http://localhost:8025'
 
 // ErrorSurface must sit above ErrorBoundary: the boundary reports into the surface's context, and
 // the surface is what actually renders the banner. Without it a throw blanks the page silently.
@@ -94,6 +92,9 @@ function Inbox({ repository }: InboxProps) {
     (thread: EmailThread) => {
       const newest = thread.newest()
       if (!newest || newest.state !== EmailState.Unread) return
+      // Never mark your own outgoing mail read. Unread is the recipient's queue, so doing that
+      // silently deletes the message from the agent's `poll` before it ever sees it.
+      if (newest.writtenByHuman()) return
       repository
         .markRead(newest.emailUuid)
         .then(() => repository.listInbox())
@@ -122,7 +123,7 @@ function Inbox({ repository }: InboxProps) {
           rightSlot={<UnreadSummary threads={threads} />}
         />
       }
-      footer={<Footer version="v0.0.0" link={{ label: 'mailpit', href: MAILPIT_URL }} />}
+      footer={<Footer version="v0.0.0" />}
     >
       <Layout
         sidebar={
