@@ -1,5 +1,3 @@
-// SEAM — props are settled, body is not. Ticket UI-3c.
-
 import type { ReactElement } from 'react'
 import { participantColor } from '../../domain/ParticipantColor'
 

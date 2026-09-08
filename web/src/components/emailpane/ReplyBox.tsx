@@ -1,5 +1,3 @@
-// SEAM — props are settled, body is not. Ticket UI-3d.
-
 import { useState, type ReactElement } from 'react'
 
 export class ReplyBoxProps {
