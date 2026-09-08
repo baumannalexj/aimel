@@ -1,7 +1,7 @@
 import { hashToHex } from '../domain/ParticipantColor'
 import { Timestamp } from '../domain/Timestamp'
 import type { ThreadListItem } from '../types/contract'
-import { Card } from './composition/Card'
+import { AccentedCard } from './composition/Card'
 import { Clickable } from './composition/Clickable'
 
 interface Props {
@@ -27,7 +27,7 @@ export function ThreadRow({ thread, selected, onOpen }: Props) {
         label={accessibleLabel(thread, updated)}
         selected={selected}
       >
-        <Card accentColor={sessionColor}>
+        <AccentedCard accentColor={sessionColor}>
           {unread ? <strong>{thread.subject}</strong> : thread.subject}
           {unread && (
             <span className="chip" style={{ background: 'var(--color-accent-muted)' }}>
@@ -38,7 +38,7 @@ export function ThreadRow({ thread, selected, onOpen }: Props) {
             <span className="chip" style={{ background: sessionColor }}>{thread.sessionShort}</span> ·{' '}
             {thread.emailCount} email(s) · {updated}
           </small>
-        </Card>
+        </AccentedCard>
       </Clickable>
     </li>
   )
