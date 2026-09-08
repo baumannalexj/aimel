@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from common.config import NamingConfig, PathsConfig
+from dataclasses import dataclass
+
+from common import repo_paths
+from common.config import NamingConfig, SkillConfig
 from common.feature_flag_service import FeatureFlagService
 from common.naming import NamingPolicy
 from common.session import SessionDetector
@@ -9,15 +12,21 @@ from common.skill_installer import SkillInstaller
 from common.thread_renderer import ThreadRenderer
 
 
+@dataclass(frozen=True)
+class CommonModuleConfig:
+    naming: NamingConfig
+    skill: SkillConfig
+
+
 class CommonModule:
     """Singletons with no adapter of their own: naming, session lookup, rendering, colour."""
 
-    def __init__(self, naming: NamingConfig, paths: PathsConfig):
-        self._naming_policy = NamingPolicy(naming)
+    def __init__(self, config: CommonModuleConfig):
+        self._naming_policy = NamingPolicy(config.naming)
         self._session_detector = SessionDetector()
         self._thread_renderer = ThreadRenderer()
         self._session_colors = SessionColorPalette()
-        self._skill_installer = SkillInstaller(paths.skill_source, paths.skill_target_dir)
+        self._skill_installer = SkillInstaller(repo_paths.skill_source(), config.skill.target_dir)
         self._feature_flags = FeatureFlagService.with_defaults()
 
     def provide_naming_policy(self) -> NamingPolicy:

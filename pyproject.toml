@@ -25,10 +25,11 @@ packages = [
 
 # Grouped by the module that needs it, ahead of splitting into real packages.
 [dependency-groups]
+common = ["pydantic>=2.13.5"]
 adapters = ["pydantic>=2.13.5"]
 web = [
     "jinja2>=3.1.6",
 ]
 
 [tool.uv]
-default-groups = ["adapters", "web"]
+default-groups = ["common", "adapters", "web"]

@@ -51,6 +51,12 @@ class EmailRespondFlag(IFeatureFlag):
 
 DEFAULT_FLAGS: tuple[type[IFeatureFlag], ...] = (EmailRespondFlag,)
 
+# Every flag's override variable is named here, literally — never built from the flag's own key —
+# so a flag is findable by grepping for the exact env var.
+_FLAG_ENV_VARS: Mapping[str, str] = {
+    EmailRespondFlag.KEY: "AIMEL_FLAG_EMAIL_RESPOND",
+}
+
 
 class FeatureFlagService:
     """Read-only after construction, so concurrent reads need no lock.
@@ -74,7 +80,7 @@ class FeatureFlagService:
         flags: dict[str, IFeatureFlag] = {}
         for flag_type in DEFAULT_FLAGS:
             key = flag_type.KEY  # type: ignore[attr-defined]
-            override = source.get(f"AIMEL_FLAG_{key.upper()}", FlagState.ENABLED.value)
+            override = source.get(_FLAG_ENV_VARS[key], FlagState.ENABLED.value)
             flags[key] = flag_type(FlagState(override.strip().lower()))  # type: ignore[call-arg]
         return cls(flags)
 

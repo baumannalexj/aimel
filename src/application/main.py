@@ -8,12 +8,14 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.responses import EmailDeletedResponse, EmailSentResponse
 from application.module_dependencies.application_module import ApplicationModule
 from application.api_server import ApiServer
 from application.web_server import WebServer
-from common.config import DEFAULTS, AppConfig, ConfigLoader
+from common.config import AppConfig, AppSettings, ConfigLoader
 from common.session_color import SessionColorPalette
 from domain.message import Message
 
@@ -135,7 +137,7 @@ class CliApplication:
         serve.add_argument("--host", default="127.0.0.1")
 
         settings = sub.add_parser("settings", help="show or change saved settings")
-        settings.add_argument("--set", action="append", metavar="KEY=VALUE", default=[])
+        settings.add_argument("--set", action="append", metavar="DOTTED.KEY=VALUE", default=[])
 
         drain = sub.add_parser("drain", help="take ownership of intake-spool mail")
         drain.add_argument("--purge", action="store_true")
@@ -146,25 +148,37 @@ class CliApplication:
     # --- commands ---
 
     def _settings(self, args: argparse.Namespace) -> int:
-        """Deliberately skips the composition root — it must work before the database exists."""
+        """Deliberately skips the composition root — it must work before the database exists.
+
+        A key is a dotted path into the config shape, e.g. `--set smtpConfig.port=1025`.
+        """
         settings = self._config_loader.raw()
         for pair in args.set:
-            key, _, value = pair.partition("=")
-            if key not in DEFAULTS:
-                raise SystemExit(f"unknown setting '{key}' — known: {', '.join(sorted(DEFAULTS))}")
-            settings[key] = value
+            dotted_key, _, value = pair.partition("=")
+            self._set_dotted(settings, dotted_key.split("."), value)
         if args.set:
+            try:
+                AppSettings.model_validate(settings)
+            except ValidationError as exc:
+                raise SystemExit(f"invalid setting: {exc}") from exc
             self._config_loader.save(settings)
         print(json.dumps(settings, indent=2, sort_keys=True))
         return 0
 
+    @staticmethod
+    def _set_dotted(settings: dict, path: list[str], value: str) -> None:
+        node = settings
+        for key in path[:-1]:
+            node = node.setdefault(key, {})
+        node[path[-1]] = value
+
     def _choose_mail_dir(self) -> None:
         settings = self._config_loader.raw()
-        default = str(settings.get("mail_dir", DEFAULTS["mail_dir"]))
+        default = str(settings["mailDir"])
         answer = ""
         if sys.stdin.isatty():
             answer = input(f"email database dir [{default}]: ").strip()
-        settings["mail_dir"] = str(Path(answer or default).expanduser())
+        settings["mailDir"] = str(Path(answer or default).expanduser())
         self._config_loader.save(settings)
 
     def _lifecycle(self, args, module: ApplicationModule, config: AppConfig) -> int:
