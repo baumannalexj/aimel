@@ -127,3 +127,44 @@ class SessionDirectoryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SessionDirectoryProjectPathTest(unittest.TestCase):
+    """The directory name cannot round-trip a path containing a dot, so the transcript wins."""
+
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+
+    def _write(self, slug: str, uuid: str, lines: list[dict]) -> None:
+        folder = self.root / slug
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"{uuid}.jsonl").write_text("\n".join(json.dumps(line) for line in lines))
+
+    def test_a_dotted_path_comes_from_the_transcript_not_the_directory_name(self) -> None:
+        self._write(
+            "-Users-alexander-baumann-toast",
+            "11111111-2222-4333-8444-555555555555",
+            [
+                {"type": "summary"},
+                {"type": "user", "cwd": "/Users/alexander.baumann/toast",
+                 "message": {"content": "first thing I said"}},
+            ],
+        )
+
+        session = SessionDirectory(self.root).list_sessions()[0]
+
+        self.assertEqual(session.project, "/Users/alexander.baumann/toast")
+        self.assertEqual(session.context, "first thing I said")
+
+    def test_falls_back_to_the_directory_name_when_no_line_states_a_cwd(self) -> None:
+        self._write(
+            "-Users-someone-repo",
+            "22222222-3333-4444-8555-666677778888",
+            [{"type": "user", "message": {"content": "no cwd anywhere"}}],
+        )
+
+        session = SessionDirectory(self.root).list_sessions()[0]
+
+        self.assertEqual(session.project, "/Users/someone/repo")
