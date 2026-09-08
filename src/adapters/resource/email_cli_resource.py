@@ -11,7 +11,6 @@ from adapters.resource.requests import (
     SessionScopedRequest,
 )
 from common.naming import NamingPolicy
-from common.session import SessionDetector
 from core.inbox_service import InboxService
 from domain.message import (
     Actor,
@@ -32,14 +31,12 @@ class EmailCliResource:
         self,
         inbox_service: InboxService,
         naming_policy: NamingPolicy,
-        session_detector: SessionDetector,
     ):
         self._inbox = inbox_service
         self._naming = naming_policy
-        self._sessions = session_detector
 
     def send_new_thread(self, request: SendNewThreadRequest) -> UnreadMessage:
-        session = self._sessions.resolve(request.session)
+        session = SessionId(str(request.session))
         sender, recipient = self._pair(session, request.actor is Actor.HUMAN)
         subject = self._naming.subject_for(session, request.title)
         return self._inbox.send_new_thread(
@@ -47,7 +44,7 @@ class EmailCliResource:
         )
 
     def reply(self, request: ReplyRequest) -> UnreadMessage:
-        session = self._sessions.resolve(request.session)
+        session = SessionId(str(request.session))
         sender, recipient = self._pair(session, request.actor is Actor.HUMAN)
         return self._inbox.reply(request.to_domain(session, sender, recipient))
 
@@ -64,7 +61,7 @@ class EmailCliResource:
         return self._inbox.poll(self.mailbox_for(request), limit=request.limit)
 
     def threads(self, request: SessionScopedRequest) -> list[ThreadSummary]:
-        return self._inbox.threads(self._sessions.resolve(request.session))
+        return self._inbox.threads(SessionId(str(request.session)))
 
     def deleted(self, request: ListRequest) -> list[Message]:
         return self._inbox.deleted(limit=request.limit)
@@ -73,7 +70,7 @@ class EmailCliResource:
         return self._inbox.drain(purge=request.purge, limit=request.limit)
 
     def mailbox_for(self, request: PollRequest) -> Email:
-        session = self._sessions.resolve(request.session)
+        session = SessionId(str(request.session))
         if request.mailbox_owner is Actor.HUMAN:
             return self._naming.human_address(session)
         return self._naming.agent_address(session)

@@ -10,6 +10,8 @@ not settable on a reply: it is the thread's context, fixed when the thread opens
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from domain.commands import EmailDelete, EmailReply, EmailSendNewThread, IncludeHistory
@@ -21,7 +23,7 @@ class _Request(BaseModel):
 
 
 class SendNewThreadRequest(_Request):
-    session: str = ""  # session uuid; empty means "detect it"
+    session: UUID
     title: str = Field(min_length=1)  # becomes the subject, set once
     html: str = ""
     text: str = ""
@@ -42,8 +44,8 @@ class SendNewThreadRequest(_Request):
 
 
 class ReplyRequest(_Request):
-    session: str = ""  # session uuid
-    email_id: str = Field(min_length=1)  # uuid of the email being answered
+    session: UUID
+    email_id: UUID  # the email being answered
     html: str = ""
     text: str = ""
     actor: Actor = Actor.AI_AGENT
@@ -52,7 +54,7 @@ class ReplyRequest(_Request):
     def to_domain(self, session: SessionId, sender: Email, recipient: Email) -> EmailReply:
         return EmailReply(
             session=session,
-            in_reply_to_email_id=self.email_id,
+            in_reply_to_email_id=str(self.email_id),
             sender=sender,
             recipient=recipient,
             author=self.actor,
@@ -63,24 +65,24 @@ class ReplyRequest(_Request):
 
 
 class DeleteRequest(_Request):
-    email_id: str = Field(min_length=1)
+    email_id: UUID
 
     def to_domain(self) -> EmailDelete:
-        return EmailDelete(email_id=self.email_id)
+        return EmailDelete(email_id=str(self.email_id))
 
 
 class EmailIdRequest(_Request):
-    email_id: str = Field(min_length=1)
+    email_id: UUID
 
 
 class PollRequest(_Request):
-    session: str = ""
+    session: UUID
     mailbox_owner: Actor = Actor.AI_AGENT
     limit: int = 50
 
 
 class SessionScopedRequest(_Request):
-    session: str = ""
+    session: UUID
 
 
 class ListRequest(_Request):

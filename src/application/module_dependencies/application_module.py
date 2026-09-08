@@ -34,9 +34,10 @@ class ApplicationModule:
         self._email_cli_resource = EmailCliResource(
             self.core_module.provide_inbox_service(),
             self.common_module.provide_naming_policy(),
-            self.common_module.provide_session_detector(),
         )
-        self._cli_request_marshaller = CliRequestMarshaller()
+        self._cli_request_marshaller = CliRequestMarshaller(
+            self.common_module.provide_session_detector()
+        )
 
     def provide_cli_request_marshaller(self) -> CliRequestMarshaller:
         return self._cli_request_marshaller
