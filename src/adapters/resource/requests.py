@@ -24,11 +24,11 @@ class SendNewThreadRequest(_Request):
     as_human: bool = False
 
     def to_domain(
-        self, session: SessionId, sender: Email, recipient: Email
+        self, session: SessionId, sender: Email, recipient: Email, subject: EmailSubject
     ) -> EmailSendNewThread:
         return EmailSendNewThread(
             session=session,
-            subject=EmailSubject(self.title),
+            subject=subject,
             sender=sender,
             recipient=recipient,
             author=Author.HUMAN if self.as_human else Author.AGENT,
