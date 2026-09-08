@@ -44,3 +44,41 @@ missing field then fails where it is built, not silently as a blank in the rende
 - Unexpected values fail loudly. An unknown enum string from the server raises rather than
   defaulting, because a silent default shows the user the wrong thing.
 - No tier reaches past the one below it.
+
+## Errors
+
+Errors change shape at every seam, deliberately. Each tier translates rather than leaking.
+
+```
+  aimelServerClient   ->  Result<T, ResponseError>    exhaustive, compiler-checked
+  EmailRepository     ->  throws DomainException      switches on ResponseError.kind
+  root container      ->  toast / red banner          catches DomainException
+```
+
+**Client returns a Result, it does not throw.** `Result<T, ResponseError>` is a discriminated union
+(no library — it is about fifteen lines). The reason is exhaustiveness: the repository must handle
+every `ResponseError` variant or the compiler complains. A thrown error is invisible to the type
+checker, so a new failure mode would silently fall through to whatever catch-all exists. The client
+logs before returning an `Err`, so the raw HTTP detail is on the console exactly once.
+
+`ResponseError` variants, each with a `kind` discriminant plus status and path:
+
+| kind | when |
+|---|---|
+| `Unreachable` | fetch itself failed — the api is not running |
+| `NotFound` | 404 |
+| `Conflict` | 409, e.g. marking a deleted email read |
+| `Invalid` | 422, e.g. an empty reply body |
+| `ServerFault` | 5xx |
+| `Malformed` | 2xx whose body did not parse as the expected shape |
+
+**Repository throws, it does not return a Result.** It switches on `kind` and raises a
+`DomainException` phrased for a human. Pages and components must not thread Results through render
+code — that is what makes view code unreadable — so propagation becomes an exception again here.
+
+**The root container is the only place that renders an error.** It catches `DomainException` and
+shows a toast or a red banner. No component decides how to display a failure, and no component
+swallows one.
+
+Anything that is not a `DomainException` reaching the root container is a bug, not a user-facing
+message: log it and show something generic, because an unmapped error means a seam was skipped.
