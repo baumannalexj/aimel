@@ -1,6 +1,6 @@
 # UI-3d — reply box
 
-Status: **not started**
+Status: **done** — body isn't cleared until `onSend` resolves, and stays intact on rejection too (the `finally` only resets the sending flag), so a failed send never loses what was typed.
 
 Fill `web/src/components/emailpane/ReplyBox.tsx`. Props are settled; own that file only.
 
