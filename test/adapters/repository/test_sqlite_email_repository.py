@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from adapters.repository.sql import email_sql as sql
 from adapters.repository.sqlite_email_repository import SqliteEmailRepository
 from domain.message import MessageState
 from test.fixtures.correspondence_fixtures import CorrespondenceFixtures
@@ -25,8 +26,9 @@ class SqliteEmailRepositorySoftDeleteTest(unittest.TestCase):
         self.database.execute.assert_not_called()
         statements = [call.args[0] for call in self.transaction.execute.call_args_list]
         self.assertEqual(len(statements), 2)
-        self.assertIn("DELETE FROM read WHERE uuid = :uuid", statements[0])
-        self.assertIn("INSERT INTO deleted", statements[1])
+        # Compared against the constants, so reformatting the SQL cannot break this test.
+        self.assertEqual(statements[0], sql.DELETE_BY_UUID[MessageState.READ])
+        self.assertEqual(statements[1], sql.INSERT_MOVED_DELETED)
 
         # deleted_at is absent from the insert because the schema stamps it.
         self.assertNotIn("deleted_at", statements[1])

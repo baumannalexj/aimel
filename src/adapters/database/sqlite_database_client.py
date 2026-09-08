@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 import threading
 from collections.abc import Iterator
@@ -7,6 +8,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from ports.database_client import IDatabaseClient, Params, Row
+
+IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class SqliteSessionFactory:
@@ -55,6 +58,11 @@ class SqliteDatabaseClient(IDatabaseClient):
             connection.commit()
         finally:
             connection.close()
+
+    def identifier(self, name: str) -> str:
+        if not IDENTIFIER.match(name):
+            raise ValueError(f"not a usable sql identifier: {name!r}")
+        return f'"{name}"'
 
     def close(self) -> None:
         with self._lock:

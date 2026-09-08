@@ -29,5 +29,13 @@ class IDatabaseClient(ABC):
         """
 
     @abstractmethod
+    def identifier(self, name: str) -> str:
+        """Validate and quote a table or column name.
+
+        Values always travel as named binds, so this is the only sanctioned way to put a name into
+        a statement. It rejects anything that is not a plain identifier rather than trusting it.
+        """
+
+    @abstractmethod
     def close(self) -> None:
         """Release the session."""

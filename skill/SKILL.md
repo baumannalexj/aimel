@@ -8,8 +8,8 @@ description: Correspond with the human over local email instead of only the term
 Local email for agent↔human correspondence. This service owns the mail in SQLite; a Mailpit container
 is the SMTP intake and the HTML viewer. Nothing leaves the machine.
 
-`aimel` is the repo's `bin/aimel`. Prefer the absolute path the human gave you; otherwise
-`~/sideprojects/aimel/bin/aimel`.
+`aimel` is the repo's `scripts/aimel`. Prefer the absolute path the human gave you; otherwise
+`~/sideprojects/aimel/scripts/aimel`.
 
 ## Threads are anchored to emails, not names
 

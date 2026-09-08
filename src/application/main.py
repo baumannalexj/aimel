@@ -109,7 +109,7 @@ class CliApplication:
     # --- commands ---
 
     def _settings(self, args: argparse.Namespace) -> int:
-        """Deliberately skips the composition root — bin/aimel calls this before the db exists."""
+        """Deliberately skips the composition root — scripts/aimel calls this before the db exists."""
         settings = self._config_loader.raw()
         for pair in args.set:
             key, _, value = pair.partition("=")

@@ -84,7 +84,7 @@ Living checklist. `architecture.md` covers *how*; this covers *what*.
       and `SendMessageResponse.ok_no_content()`. Needs the dependency added.
 - [ ] **Two remaining nullables.** `PollRequest.thread` and `IEmailRepository.find` still return or
       carry `None`; both want a second shape instead.
-- [ ] **More tests.** Two exist (`bin/test`): `InboxService.read` delegation, and
+- [ ] **More tests.** Two exist (`scripts/test`): `InboxService.read` delegation, and
       `SqliteEmailRepository.soft_delete` proving the statements run on the transaction client.
       Untested: `send_email` chain building, `drain` idempotency, the marshaller.
 

@@ -28,7 +28,7 @@ test/                         mirrors src/, plus fixtures/ and helpers/
 ```
 
 `test/` has the same shape as `src/` so a file's tests are findable by path alone. Run with
-`bin/test`.
+`scripts/test`.
 
 ## Classes, not scripts
 

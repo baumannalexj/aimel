@@ -10,23 +10,23 @@ First time:
 
 ```sh
 git clone git@github.com:baumannalexj/aimel.git && cd aimel
-bin/aimel up                 # prompts for the mail database dir, remembers the answer
-bin/aimel install-skill      # drops the agent contract in ~/.claude/skills/aimel
-bin/aimel open               # or just: open http://localhost:8025
+scripts/aimel up                 # prompts for the mail database dir, remembers the answer
+scripts/aimel install-skill      # drops the agent contract in ~/.claude/skills/aimel
+scripts/aimel open               # or just: open http://localhost:8025
 ```
 
 Day to day:
 
 ```sh
-bin/aimel up                 # start the container (idempotent)
-bin/aimel status             # resolved config + mailpit health + your addresses
-bin/aimel threads            # what is open for this session
-bin/aimel poll               # unread mail for this session
-bin/aimel down               # stop the container; mail survives in the database
-bin/aimel logs -f            # follow container logs
+scripts/aimel up                 # start the container (idempotent)
+scripts/aimel status             # resolved config + mailpit health + your addresses
+scripts/aimel threads            # what is open for this session
+scripts/aimel poll               # unread mail for this session
+scripts/aimel down               # stop the container; mail survives in the database
+scripts/aimel logs -f            # follow container logs
 ```
 
-`bin/aimel` is the only entrypoint you need — it runs the CLI through `uv` when available and falls
+`scripts/aimel` is the only entrypoint you need — it runs the CLI through `uv` when available and falls
 back to `python3` otherwise. Call it from any directory; it resolves its own repo path and leaves your
 working directory alone, which matters because session detection reads `cwd`.
 
@@ -34,7 +34,7 @@ To bypass the runner and drive the CLI directly:
 
 ```sh
 uv run --project /path/to/aimel python /path/to/aimel/aimel.py status
-AIMEL_PYTHON=python3 bin/aimel status     # force a specific interpreter
+AIMEL_PYTHON=python3 scripts/aimel status     # force a specific interpreter
 ```
 
 | Port | Use |
