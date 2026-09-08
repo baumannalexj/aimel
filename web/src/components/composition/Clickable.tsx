@@ -7,7 +7,7 @@
 // The point is that the whole container is the hit target, not a button inside it. Keyboard and
 // screen-reader behaviour still has to match a button: role, tabIndex, Enter and Space.
 
-import type { ReactElement, ReactNode } from 'react'
+import { useState, type KeyboardEvent, type ReactElement, type ReactNode } from 'react'
 
 export interface ClickableProps {
   onClick: () => void
@@ -16,6 +16,35 @@ export interface ClickableProps {
   children: ReactNode
 }
 
-export function Clickable(_props: ClickableProps): ReactElement {
-  throw new Error('Clickable is not implemented yet')
+export function Clickable({ onClick, label, selected, children }: ClickableProps): ReactElement {
+  const [hovered, setHovered] = useState(false)
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    onClick()
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      aria-current={selected}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: 'pointer',
+        background: selected
+          ? 'var(--color-surface-sunken)'
+          : hovered
+            ? 'var(--color-surface-raised)'
+            : undefined,
+      }}
+    >
+      {children}
+    </div>
+  )
 }

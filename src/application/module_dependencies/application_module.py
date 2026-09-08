@@ -4,8 +4,8 @@ from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.email_web_resource import EmailWebResource
 from application.cli_request_marshaller import CliRequestMarshaller
-from application.module_dependencies.client_module import ClientModule
-from application.module_dependencies.common_module import CommonModule
+from application.module_dependencies.client_module import ClientModule, ClientModuleConfig
+from application.module_dependencies.common_module import CommonModule, CommonModuleConfig
 from application.module_dependencies.core_module import CoreModule
 from application.module_dependencies.database_module import DatabaseModule
 from application.module_dependencies.repository_module import RepositoryModule
@@ -19,15 +19,17 @@ class ApplicationModule:
 
     def __init__(self, config: AppConfig):
         self.config = config
-        self.common_module = CommonModule(config.naming, config.paths)
+        self.common_module = CommonModule(
+            CommonModuleConfig(naming=config.naming, skill=config.skill)
+        )
         self.database_module = DatabaseModule(config.database)
         self.repository_module = RepositoryModule(
             self.database_module.provide_database_client()
         )
         self.client_module = ClientModule(
-            config.smtp, config.mailbox,
-            config.paths.compose_file,
-            config.web.spool_port,
+            ClientModuleConfig(
+                smtp=config.smtp, mailbox=config.mailbox, spool_port=config.web.spool_port
+            )
         )
         self.core_module = CoreModule(
             self.repository_module.provide_email_repository(),
