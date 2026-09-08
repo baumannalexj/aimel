@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Footer } from './app/Footer'
+import { Header } from './app/Header'
+import { Root } from './app/Root'
 import { Thread } from './components/Thread'
 import { ThreadList } from './components/ThreadList'
 import { aimelClient } from './repository/aimelClient'
@@ -21,13 +24,23 @@ export default function App() {
       .catch((cause) => setError(String(cause)))
   }
 
-  if (error) return <main role="alert">{error}</main>
-  if (open) return <main><Thread thread={open} onBack={() => setOpen(null)} /></main>
+  const rightSlot = <span>{threads.length} thread{threads.length === 1 ? '' : 's'}</span>
 
   return (
-    <main>
-      <h1>Inbox</h1>
-      <ThreadList threads={threads} onOpen={openThread} />
-    </main>
+    <Root
+      header={<Header productName="aimel" rightSlot={rightSlot} />}
+      footer={<Footer version="v0.0.0" />}
+    >
+      {error ? (
+        <p role="alert" className="notice">{error}</p>
+      ) : open ? (
+        <Thread thread={open} onBack={() => setOpen(null)} />
+      ) : (
+        <>
+          <h1>Inbox</h1>
+          <ThreadList threads={threads} onOpen={openThread} />
+        </>
+      )}
+    </Root>
   )
 }

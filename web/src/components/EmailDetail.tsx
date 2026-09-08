@@ -6,8 +6,8 @@ interface Props {
 
 export function EmailDetail({ email }: Props) {
   return (
-    <article>
-      <small>
+    <article className="email">
+      <small className="meta">
         {email.author === 'human' ? 'you' : 'agent'} · {email.sentAt} · {email.sender} &rarr;{' '}
         {email.recipient} · {email.state}
       </small>

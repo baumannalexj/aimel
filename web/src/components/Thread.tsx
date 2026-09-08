@@ -13,12 +13,12 @@ export function Thread({ thread, onBack }: Props) {
 
   return (
     <section>
-      <button type="button" onClick={onBack}>
+      <button type="button" className="secondary-button" onClick={onBack}>
         &larr; all threads
       </button>
       <h2>{thread.subject}</h2>
-      <small>
-        {thread.sessionShort} · {thread.emails.length} email(s)
+      <small className="meta">
+        <span className="chip">{thread.sessionShort}</span> · {thread.emails.length} email(s)
       </small>
 
       <ul>
@@ -32,7 +32,7 @@ export function Thread({ thread, onBack }: Props) {
         ))}
       </ul>
 
-      {openEmail ? <EmailDetail email={openEmail} /> : <p>Pick an email to read it.</p>}
+      {openEmail ? <EmailDetail email={openEmail} /> : <p className="notice">Pick an email to read it.</p>}
     </section>
   )
 }

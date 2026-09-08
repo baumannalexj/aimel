@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function ThreadList({ threads, onOpen }: Props) {
-  if (threads.length === 0) return <p>No mail yet.</p>
+  if (threads.length === 0) return <p className="notice">No mail yet.</p>
   return (
     <ul>
       {threads.map((thread) => (
