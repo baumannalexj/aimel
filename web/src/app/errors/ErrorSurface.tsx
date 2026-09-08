@@ -53,7 +53,9 @@ export function ErrorSurface({ children }: ErrorSurfaceProps) {
 
   return (
     <ErrorReporterContext.Provider value={{ reportError }}>
-      {banner && <ErrorBanner message={banner.message} onDismiss={dismissBanner} />}
+      {banner && (
+        <ErrorBanner message={banner.message} cause={banner.cause} onDismiss={dismissBanner} />
+      )}
       {children}
       <div className="error-toast-stack">
         {toasts.map((toast) => (

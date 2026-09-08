@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error): void {
     if (this.context) {
-      this.context.reportError({ message: error.message, severity: ErrorSeverity.Blocking })
+      this.context.reportError({ message: error.message, severity: ErrorSeverity.Blocking, cause: error })
     } else {
       // No ErrorSurface above it is a setup bug, not a user-facing failure — don't hide it.
       console.error('ErrorBoundary caught an error with no ErrorSurface mounted above it:', error)

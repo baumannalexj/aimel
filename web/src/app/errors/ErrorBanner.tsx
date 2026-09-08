@@ -1,9 +1,10 @@
 // Presentational only. ErrorSurface decides when a banner exists; this just renders one.
 
+import { ApiCallFailed } from '../../domain/ApiCallFailed'
+
 export interface ErrorBannerProps {
   message: string
-  status?: number
-  stack?: string
+  cause?: unknown
   onDismiss: () => void
 }
 
@@ -13,7 +14,17 @@ function statusLabel(status: number): string {
   return status === 0 ? 'unreachable' : String(status)
 }
 
-export function ErrorBanner({ message, status, stack, onDismiss }: ErrorBannerProps) {
+// The stack when there is one, or whatever the thrown value stringifies to when there isn't --
+// an unexpected throw is exactly when you need something to expand.
+function detailsOf(cause: unknown): string | undefined {
+  if (cause === undefined) return undefined
+  return cause instanceof Error ? cause.stack ?? String(cause) : String(cause)
+}
+
+export function ErrorBanner({ message, cause, onDismiss }: ErrorBannerProps) {
+  const status = cause instanceof ApiCallFailed ? cause.status : undefined
+  const details = detailsOf(cause)
+
   return (
     <div role="alert" className="error-banner">
       <div className="error-banner-content">
@@ -21,10 +32,10 @@ export function ErrorBanner({ message, status, stack, onDismiss }: ErrorBannerPr
           <span className="error-banner-status">status: {statusLabel(status)}</span>
         )}
         <span className="error-banner-message">{message}</span>
-        {stack && (
+        {details && (
           <details className="error-banner-stack">
             <summary className="error-banner-stack-toggle">Stack trace</summary>
-            <pre className="error-banner-trace">{stack}</pre>
+            <pre className="error-banner-trace">{details}</pre>
           </details>
         )}
       </div>
