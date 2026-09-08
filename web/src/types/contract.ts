@@ -28,3 +28,8 @@ export interface ThreadDetail {
   sessionShort: string
   emails: EmailItem[]
 }
+
+export interface ReplyResult {
+  emailUuid: string
+  threadUuid: string
+}
