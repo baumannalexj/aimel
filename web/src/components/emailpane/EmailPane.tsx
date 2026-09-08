@@ -28,8 +28,11 @@ interface Props {
   onThreadReloaded: (thread: EmailThread) => void
 }
 
+// Open by default: opening a thread almost always means answering it. App keys this component on
+// the thread uuid, so switching threads remounts it and the box is open and empty again -- state
+// from the thread you left never leaks into the one you opened.
 export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
-  const [replying, setReplying] = useState(false)
+  const [replying, setReplying] = useState(true)
   const { reportError } = useErrorReporter()
   const newest = thread.newest()
 
@@ -40,7 +43,6 @@ export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
     if (!newest) return
     try {
       onThreadReloaded(await repository.replyTo(newest.emailUuid, body))
-      setReplying(false)
     } catch (thrown) {
       reportError({
         message: thrown instanceof Error ? thrown.message : String(thrown),
@@ -61,9 +63,11 @@ export function EmailPane({ thread, repository, onThreadReloaded }: Props) {
     <section className="email-pane">
       <div className="email-pane-top">
         <PaneHeader {...new PaneHeaderProps(thread.session, thread.subject, thread.color())} />
-        <button type="button" className="secondary-button" onClick={() => setReplying(true)}>
-          Reply
-        </button>
+        {!replying && (
+          <button type="button" className="secondary-button" onClick={() => setReplying(true)}>
+            Reply
+          </button>
+        )}
       </div>
       <MessageStack {...new MessageStackProps(thread.emails, NESTING_LIMIT, replyBox)} />
     </section>

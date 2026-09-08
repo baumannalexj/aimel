@@ -204,5 +204,14 @@ function Pane({ route, thread, repository, onReplied }: PaneProps) {
   if (!thread) {
     return <p className="notice">Pick a thread to read it.</p>
   }
-  return <EmailPane thread={thread} repository={repository} onThreadReloaded={onReplied} />
+  // Keyed on the thread so each one opens with a fresh reply box rather than inheriting the last
+  // thread's draft and open/closed state.
+  return (
+    <EmailPane
+      key={thread.threadUuid}
+      thread={thread}
+      repository={repository}
+      onThreadReloaded={onReplied}
+    />
+  )
 }
