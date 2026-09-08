@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from adapters.resource.email_api_resource import EmailApiResource
 from common.headers import HttpHeaders
+
+THREAD_PATH = re.compile(r"^/api/emails/([0-9a-fA-F-]{36})/thread$")
 
 
 class ApiServer:
@@ -37,6 +40,14 @@ class ApiServer:
             def do_GET(self) -> None:  # noqa: N802 - stdlib naming
                 if self.path == "/api/threads":
                     self._json([item.model_dump() for item in resource.threads()])
+                    return
+                match = THREAD_PATH.match(self.path)
+                if match:
+                    detail = resource.thread(match.group(1))
+                    if detail is None:
+                        self._json({"error": "no such email"}, status=404)
+                        return
+                    self._json(detail.model_dump())
                     return
                 self._json({"error": "not found"}, status=404)
 

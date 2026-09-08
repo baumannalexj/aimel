@@ -9,3 +9,22 @@ export interface ThreadListItem {
   sessionShort: string
   updatedAt: string
 }
+
+export interface EmailItem {
+  emailUuid: string
+  author: 'human' | 'ai_agent'
+  state: 'unread' | 'read' | 'deleted'
+  sentAt: string
+  sender: string
+  recipient: string
+  bodyHtml: string
+  preview: string
+}
+
+export interface ThreadDetail {
+  threadUuid: string
+  subject: string
+  session: string
+  sessionShort: string
+  emails: EmailItem[]
+}
