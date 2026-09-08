@@ -2,6 +2,38 @@
 
 Living checklist. `architecture.md` covers *how*; this covers *what*, and what is still owed.
 
+## MVP remaining
+
+Measured against the stated use cases, not guessed.
+
+- [ ] **Scope the inbox to the human.** `SELECT_ALL_THREADS` ignores `recipient`, so the inbox shows
+      every thread including agent-to-agent mail. Needs a filter, and a decision: threads containing
+      *any* email addressed to you, or only those whose latest is.
+- [ ] **Session registry.** No `sessions` table exists (`.tables` reports only `unread`, `read`,
+      `deleted`), so an agent's session id is never recorded on first contact. Deliberately deferred
+      until the relational-schema PR merges, since it rewrites the same SQL.
+- [x] Two-pane layout, threads beside the email — in progress
+- [x] Read/unread on threads — in progress
+
+## V2
+
+Raised as the next tier, not started.
+
+- [ ] **Start a new email to an agent by session id.** Today a human can only reply to something that
+      already exists; nothing initiates a thread outbound.
+- [ ] **Let the skill change the subject** so an agent can split a side quest into its own thread.
+      Default stays one thread per engagement; the subject is what separates them.
+- [ ] **Tell the agent a reply arrived, and let it acknowledge that it is thinking.** Nothing can wake
+      an agent today — a Claude Code hook is the only real push; polling is the MVP stand-in.
+- [ ] **Search emails.** The bodies are in SQLite already; FTS5 is the obvious route.
+- [ ] **Soft delete from the UI.** The domain and the `deleted` table already support it and `history`
+      still shows deleted mail; only the UI and an endpoint are missing.
+- [ ] **Render markdown, and update the skill to match.** Bodies are HTML today, which is ahead of
+      "simple text to start" — but the reply form escapes what you type, so your half of the
+      conversation is plain while the agent's is formatted. That asymmetry wants deciding first.
+- [ ] **Real styling.** The design system exists; only some of it is applied.
+- [ ] **Database size indicator.** `<mail_dir>/inbox/mail.db` plus its WAL, surfaced in the UI.
+
 ## Future improvements
 
 Raised in review, not yet done.
