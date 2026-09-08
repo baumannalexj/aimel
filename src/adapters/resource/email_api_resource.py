@@ -8,7 +8,7 @@ from common.naming import NamingPolicy
 from domain.commands import IncludeHistory
 from domain.errors import EmailNotFound
 from domain.message import Actor, SessionId
-from core.inbox_service import INTAKE_SESSION, InboxService
+from core.inbox_service import InboxService
 
 
 class EmailApiResource:
@@ -26,7 +26,7 @@ class EmailApiResource:
         if scope == "all":
             threads = self._inbox.all_threads()
         else:
-            human = self._naming.human_address(SessionId(INTAKE_SESSION))
+            human = self._naming.mailbox_owner_address()
             threads = self._inbox.threads_for_mailbox(human)
         return [ThreadListItem.of(thread) for thread in threads]
 
