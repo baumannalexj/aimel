@@ -192,6 +192,39 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+/* --- Message stack: newest email on top, each older one nested a level deeper ---
+   The indent comes from --depth (set inline per item, capped so five levels of nesting
+   never push the body past the pane's edge); the left border carries the "still nested"
+   cue once the indent itself has stopped growing. */
+
+.message-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.message-stack-level {
+  margin-left: calc(var(--depth) * var(--space-5));
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.message-stack-item {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.message-stack-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.message-stack-overflow {
+  margin-left: var(--space-5);
 }
 
 /* --- Meta: secondary line under a subject/title, e.g. "session · 3 emails · 2h ago" --- */
