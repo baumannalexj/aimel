@@ -133,6 +133,16 @@ class DatabaseStatsAgainstARealDatabaseTest(unittest.TestCase):
             report.content.overhead_bytes, report.content.database_bytes - expected
         )
 
+    def test_content_bytes_counts_utf8_bytes_and_not_characters(self) -> None:
+        html, text = "<p>café — \U0001f9c0</p>", "café — \U0001f9c0"
+        self.repository.add_new_thread(_sent(html, text, "<5@aimel.com>"))
+
+        report = self.stats.collect()
+
+        expected = len(html.encode("utf-8")) + len(text.encode("utf-8"))
+        self.assertEqual(report.content.content_bytes, expected)
+        self.assertGreater(expected, len(html) + len(text))
+
     def test_reclaimable_space_is_read_from_the_live_pragmas(self) -> None:
         report = self.stats.collect()
 

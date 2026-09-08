@@ -114,9 +114,11 @@ class DatabaseStats:
         return ContentSizeReport(content_bytes=content_bytes, database_bytes=database_bytes)
 
     def _content_bytes(self, state: MessageState) -> int:
+        # octet_length, not length: length() counts characters, and we compare this against a
+        # real byte count off disk. One em-dash would make the two sides disagree.
         table = self._db.identifier(state.value)
         rows = self._db.query(
-            f"SELECT COALESCE(SUM(length(body_html) + length(body_text)), 0) AS bytes "
+            f"SELECT COALESCE(SUM(octet_length(body_html) + octet_length(body_text)), 0) AS bytes "
             f"FROM {table}"
         )
         return rows[0]["bytes"]
