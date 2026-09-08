@@ -46,11 +46,6 @@ Raised in review, not yet done.
       renders and `EmailCliResource` marshals, so a framework only owns routing and serialisation.
       The request DTOs are already pydantic, so FastAPI gets validation and `/docs` for free.
       `uv add --group adapters fastapi uvicorn`.
-- [ ] **Ship a `docker-compose.yml` as well as `compose.yml`.** Colima installs the standalone
-      `docker-compose` binary rather than the `docker compose` plugin. Our v5.1.4 standalone does read
-      `compose.yml`, and `DockerComposeRuntime` already prefers that binary, so nothing is broken —
-      but older standalone versions only look for `docker-compose.yml`, and the filename is what
-      people expect. Open question: symlink, rename, or leave it.
 - [ ] **Review comments now resolved, kept for the record**
       ([requests.py L41-L46 @ review-comments](https://github.com/baumannalexj/aimel/blob/review-comments/src/adapters/resource/requests.py#L41-L46),
       [L73](https://github.com/baumannalexj/aimel/blob/review-comments/src/adapters/resource/requests.py#L73),
@@ -142,6 +137,9 @@ Raised in review, not yet done.
 - [x] `uv` for a pinned interpreter and reproducible environment
 - [x] Skill installed to `~/.claude/skills/aimel` so every session picks it up
 - [x] Service name is config, not a literal in source
+- [x] Compose file named `docker-compose.yml` (renamed from `compose.yml`) — `DockerComposeRuntime`
+      always passes `-f`, but the conventional name is what a human running compose by hand expects,
+      and every standalone version and the plugin both discover it without a flag
 
 ## Next
 

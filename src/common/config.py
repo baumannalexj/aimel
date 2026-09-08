@@ -150,7 +150,7 @@ class ConfigLoader:
             ),
             web=web,
             paths=PathsConfig(
-                compose_file=_repo_root() / "compose.yml",
+                compose_file=_repo_root() / "docker-compose.yml",
                 skill_source=_repo_root() / "skill" / "SKILL.md",
                 skill_target_dir=Path(str(settings["skill_target_dir"])).expanduser(),
             ),

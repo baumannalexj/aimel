@@ -114,4 +114,5 @@ Mailpit viewer is still useful.
 
 Docker and [uv](https://docs.astral.sh/uv/). The only third-party dependency is pydantic, scoped to
 the `adapters` group. On a Mac running Colima, `docker compose` often is not installed as a plugin;
-the runtime falls back to the standalone `docker-compose` binary automatically.
+the runtime falls back to the standalone `docker-compose` binary automatically. The compose file is
+named `docker-compose.yml` so both the plugin and standalone binary find it without `-f`.
