@@ -19,9 +19,11 @@ from pathlib import Path
 from adapters.database.sqlite_database_client import SqliteDatabaseClient, SqliteSessionFactory
 from adapters.repository.sqlite_email_repository import SqliteEmailRepository
 from adapters.resource.email_api_resource import EmailApiResource
+from adapters.resource.session_directory_resource import SessionDirectoryApiResource
 from application.api_server import ApiServer
 from common.config import NamingConfig
 from common.naming import NamingPolicy
+from common.session_directory import SessionDirectory
 from common.thread_renderer import ThreadRenderer
 from core.inbox_service import InboxService
 from domain.commands import EmailSendNewThread
@@ -55,10 +57,13 @@ class EmailByUuidRouteTest(unittest.TestCase):
             ThreadRenderer(),
         )
         resource = EmailApiResource(self.inbox, NamingPolicy(NAMING))
+        sessions = SessionDirectoryApiResource(SessionDirectory(Path(directory.name) / "no-such-dir"))
 
         # Bypass ApiServer.serve_forever so the test can pick an ephemeral port and shut down
         # cleanly; the handler class it builds is the thing under test either way.
-        self._server = ThreadingHTTPServer(("127.0.0.1", 0), ApiServer(resource)._handler())
+        self._server = ThreadingHTTPServer(
+            ("127.0.0.1", 0), ApiServer(resource, sessions)._handler()
+        )
         self.addCleanup(self._server.server_close)
         threading.Thread(target=self._server.serve_forever, daemon=True).start()
         self.addCleanup(self._server.shutdown)

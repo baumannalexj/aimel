@@ -9,6 +9,7 @@ import { AimelServerClient } from '../api/aimelServerClient'
 import type { Result } from '../api/Result'
 import type { ResponseError } from '../api/ResponseError'
 import { ApiCallFailed } from '../domain/ApiCallFailed'
+import { ClaudeSession } from '../domain/ClaudeSession'
 import { Email } from '../domain/Email'
 import { EmailThread } from '../domain/EmailThread'
 import { ThreadSummary } from '../domain/ThreadSummary'
@@ -43,5 +44,10 @@ export class EmailRepository {
 
   async markRead(emailUuid: string): Promise<Email> {
     return Email.fromResponse(unwrap(await this.client.markRead(emailUuid)))
+  }
+
+  async listSessions(): Promise<ClaudeSession[]> {
+    const sessions = unwrap(await this.client.sessions())
+    return sessions.map(ClaudeSession.fromResponse)
   }
 }

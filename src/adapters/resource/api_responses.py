@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 from common.session_color import SessionColorPalette
+from common.session_directory import TranscriptSession
 from domain.message import Message
 from domain.thread import ThreadSummary
 
@@ -90,6 +91,24 @@ class ThreadDetail(_Payload):
             sessionShort=opener.session.short,
             sessionColor=COLORS.color_for(opener.session),
             emails=[EmailItem.of(message) for message in messages],
+        )
+
+
+class SessionListItem(_Payload):
+    sessionUuid: str
+    shortUuid: str
+    project: str
+    context: str
+    lastActiveAt: str
+
+    @classmethod
+    def of(cls, session: TranscriptSession) -> "SessionListItem":
+        return cls(
+            sessionUuid=session.session_uuid,
+            shortUuid=session.session_uuid[:8],
+            project=session.project,
+            context=session.context,
+            lastActiveAt=session.last_active_at.isoformat(timespec="seconds"),
         )
 
 

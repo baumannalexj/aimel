@@ -3,6 +3,7 @@ from __future__ import annotations
 from adapters.resource.email_api_resource import EmailApiResource
 from adapters.resource.email_cli_resource import EmailCliResource
 from adapters.resource.email_web_resource import EmailWebResource
+from adapters.resource.session_directory_resource import SessionDirectoryApiResource
 from application.cli_request_marshaller import CliRequestMarshaller
 from application.module_dependencies.client_module import ClientModule, ClientModuleConfig
 from application.module_dependencies.common_module import CommonModule, CommonModuleConfig
@@ -45,6 +46,9 @@ class ApplicationModule:
             self.core_module.provide_inbox_service(),
             self.common_module.provide_naming_policy(),
         )
+        self._session_directory_resource = SessionDirectoryApiResource(
+            self.common_module.provide_session_directory()
+        )
         self._cli_request_marshaller = CliRequestMarshaller(
             self.common_module.provide_session_detector()
         )
@@ -58,6 +62,9 @@ class ApplicationModule:
 
     def provide_email_api_resource(self) -> EmailApiResource:
         return self._email_api_resource
+
+    def provide_session_directory_resource(self) -> SessionDirectoryApiResource:
+        return self._session_directory_resource
 
     def provide_email_web_resource(self) -> EmailWebResource:
         return self._email_web_resource

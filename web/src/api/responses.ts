@@ -38,6 +38,14 @@ export interface ReplyAcceptedResponse {
   threadUuid: string
 }
 
+export interface SessionListItemResponse {
+  sessionUuid: string
+  shortUuid: string
+  project: string
+  context: string
+  lastActiveAt: string
+}
+
 // Runtime guards so a 2xx with the wrong shape becomes a `Malformed` Result, not a crash deep in a
 // mapper. Structural checks only, matching the interfaces above field for field.
 
@@ -94,4 +102,19 @@ export function isThreadDetailResponse(value: unknown): value is ThreadDetailRes
 
 export function isReplyAcceptedResponse(value: unknown): value is ReplyAcceptedResponse {
   return isRecord(value) && typeof value.emailUuid === 'string' && typeof value.threadUuid === 'string'
+}
+
+export function isSessionListItemResponse(value: unknown): value is SessionListItemResponse {
+  return (
+    isRecord(value) &&
+    typeof value.sessionUuid === 'string' &&
+    typeof value.shortUuid === 'string' &&
+    typeof value.project === 'string' &&
+    typeof value.context === 'string' &&
+    typeof value.lastActiveAt === 'string'
+  )
+}
+
+export function isSessionListItemResponseArray(value: unknown): value is SessionListItemResponse[] {
+  return Array.isArray(value) && value.every(isSessionListItemResponse)
 }

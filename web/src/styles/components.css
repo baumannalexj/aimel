@@ -372,6 +372,19 @@
   font-family: var(--font-mono);
 }
 
+/* --- Session filter: narrows the thread list to one Claude session --- */
+
+.session-filter {
+  width: calc(100% - 2 * var(--space-4));
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
 /* Sidebar rows sit flush against the divider, so the heading needs the padding instead. */
 .layout-sidebar > h1 {
   margin: 0;

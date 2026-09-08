@@ -6,9 +6,11 @@ import { Footer } from './app/Footer'
 import { Header } from './app/Header'
 import { Layout } from './app/Layout'
 import { Root } from './app/Root'
-import { HistoryMode, Router, useNavigate, useRoute } from './app/Router'
+import { HistoryMode, Router, useNavigate, useRoute, useSessionFilter } from './app/Router'
 import { EmailPane } from './components/emailpane/EmailPane'
+import { SessionFilter } from './components/SessionFilter'
 import { ThreadList } from './components/ThreadList'
+import type { ClaudeSession } from './domain/ClaudeSession'
 import { EmailState } from './domain/EmailState'
 import type { EmailThread } from './domain/EmailThread'
 import type { ThreadSummary } from './domain/ThreadSummary'
@@ -42,9 +44,15 @@ interface InboxProps {
 function Inbox({ repository }: InboxProps) {
   const route = useRoute()
   const navigate = useNavigate()
+  const [sessionFilter, setSessionFilter] = useSessionFilter()
   const { reportError } = useErrorReporter()
   const [threads, setThreads] = useState<ThreadSummary[]>([])
+  const [sessions, setSessions] = useState<ClaudeSession[]>([])
   const [open, setOpen] = useState<EmailThread | null>(null)
+  const visibleThreads = useMemo(
+    () => (sessionFilter ? threads.filter((thread) => thread.session === sessionFilter) : threads),
+    [threads, sessionFilter],
+  )
 
   // Async rejections never reach an ErrorBoundary -- React only catches throws during render -- so
   // every await here has to hand the failure to the surface itself or it vanishes into the console.
@@ -61,6 +69,10 @@ function Inbox({ repository }: InboxProps) {
 
   useEffect(() => {
     repository.listInbox().then(setThreads).catch(report)
+  }, [repository, report])
+
+  useEffect(() => {
+    repository.listSessions().then(setSessions).catch(report)
   }, [repository, report])
 
   // Drives `open` from the URL rather than from clicks, so back/forward and a cold deep link all
@@ -86,9 +98,9 @@ function Inbox({ repository }: InboxProps) {
   // cold load. Replaces rather than pushes: a pushed redirect makes back return here and bounce
   // forward again. A deep link is left alone -- an explicit request outranks a default.
   useEffect(() => {
-    if (route.name !== 'inbox' || threads.length === 0) return
-    navigate(`/emailthreads/${threads[0].threadUuid}`, HistoryMode.Replace)
-  }, [route, threads, navigate])
+    if (route.name !== 'inbox' || visibleThreads.length === 0) return
+    navigate(threadPath(visibleThreads[0].threadUuid, sessionFilter), HistoryMode.Replace)
+  }, [route, visibleThreads, sessionFilter, navigate])
 
   const markNewestRead = useCallback(
     (thread: EmailThread) => {
@@ -128,10 +140,11 @@ function Inbox({ repository }: InboxProps) {
         sidebar={
           <>
             <h1>Inbox</h1>
+            <SessionFilter sessions={sessions} selectedSessionUuid={sessionFilter} onChange={setSessionFilter} />
             <ThreadList
-              threads={threads}
+              threads={visibleThreads}
               selectedThreadUuid={open?.threadUuid ?? null}
-              onOpen={(thread) => navigate(`/emailthreads/${thread.threadUuid}`)}
+              onOpen={(thread) => navigate(threadPath(thread.threadUuid, sessionFilter))}
             />
           </>
         }
@@ -139,6 +152,12 @@ function Inbox({ repository }: InboxProps) {
       />
     </Root>
   )
+}
+
+// Opening a thread is a pathname change; the session filter lives in the query string, so it has
+// to be carried along by hand or picking a filter and then a thread would silently clear it.
+function threadPath(threadUuid: string, sessionFilter: string | null): string {
+  return `/emailthreads/${threadUuid}${sessionFilter ? `?session=${sessionFilter}` : ''}`
 }
 
 function UnreadSummary({ threads }: { threads: ThreadSummary[] }) {
