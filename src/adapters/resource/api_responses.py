@@ -63,7 +63,10 @@ class EmailItem(_Payload):
             sentAt=content.sent_at.isoformat(timespec="seconds"),
             sender=content.sender.address,
             recipient=content.recipient.address,
-            bodyHtml=content.body_html.markup,
+            # Replies carry the thread quoted inside their own body so the mail is self-contained
+            # in a real client. A thread view already lists every message, so sending it as-is
+            # renders the whole thread again inside each message, and again inside that.
+            bodyHtml=content.body_html.without_quoted_history().markup,
             preview=content.preview,
         )
 

@@ -6,7 +6,7 @@ import { Footer } from './app/Footer'
 import { Header } from './app/Header'
 import { Layout } from './app/Layout'
 import { Root } from './app/Root'
-import { Router, useNavigate, useRoute } from './app/Router'
+import { HistoryMode, Router, useNavigate, useRoute } from './app/Router'
 import { EmailPane } from './components/emailpane/EmailPane'
 import { ThreadList } from './components/ThreadList'
 import { EmailState } from './domain/EmailState'
@@ -76,6 +76,14 @@ function Inbox({ repository }: InboxProps) {
     }
     setOpen(null)
   }, [route, threads, open, repository, report])
+
+  // Landing on the inbox with mail in it opens the newest thread, so the pane is never empty on a
+  // cold load. Replaces rather than pushes: a pushed redirect makes back return here and bounce
+  // forward again. A deep link is left alone -- an explicit request outranks a default.
+  useEffect(() => {
+    if (route.name !== 'inbox' || threads.length === 0) return
+    navigate(`/emailthreads/${threads[0].threadUuid}`, HistoryMode.Replace)
+  }, [route, threads, navigate])
 
   const markNewestRead = useCallback(
     (thread: EmailThread) => {

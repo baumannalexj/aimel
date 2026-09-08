@@ -1,7 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { matchRoute, type RouteMatch } from './routes'
 
-export type Navigate = (path: string) => void
+// A default landing place must replace, not push. Pushing means back returns to the path that
+// redirected, which redirects forward again -- a history you cannot escape.
+export enum HistoryMode {
+  Push = 'push',
+  Replace = 'replace',
+}
+
+export type Navigate = (path: string, mode?: HistoryMode) => void
 
 const NavigateContext = createContext<Navigate>(() => {
   throw new Error('navigate() called outside <Router>')
@@ -37,9 +44,13 @@ export function Router({ children }: RouterProps) {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  function navigate(path: string) {
+  function navigate(path: string, mode: HistoryMode = HistoryMode.Push) {
     if (path === window.location.pathname) return
-    window.history.pushState(null, '', path)
+    if (mode === HistoryMode.Replace) {
+      window.history.replaceState(null, '', path)
+    } else {
+      window.history.pushState(null, '', path)
+    }
     setRoute(matchRoute(path))
   }
 
