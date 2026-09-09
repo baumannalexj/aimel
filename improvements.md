@@ -62,10 +62,15 @@ Raised in review, not yet done.
       only the plain-text alternative part and is derived from `html` when omitted; documented in the
       module docstring. "I think you can also change subject" — deliberately not: the subject is the
       thread's context, fixed when the thread opens.
-- [ ] **Drop `--text` from the CLI.** Follows from the answer above: it is derived, so the flag earns
-      nothing and invites confusion.
-- [ ] **Require a body.** `html` still defaults to `""`, so an empty email is sendable — the same
-      "should blow up if not provided" argument that fixed the uuid fields.
+- [x] **Drop `--text` from the CLI.** Follows from the answer above: it is derived, so the flag earned
+      nothing and invited confusion. Removed from `send`/`reply`/`say` and from the request models;
+      `EmailSendNewThread`/`EmailReply` no longer carry `body_text` either, since nothing outbound set
+      it. `body_text` stays on `SentEmail`/`Correspondence` (derived from `body_html` at send time) and
+      on the captured/drained side, where Mailpit's real text part is still worth keeping.
+- [x] **Require a body.** `html` no longer defaults to `""` — it is `Field(min_length=1)` on both
+      `SendNewThreadRequest` and `ReplyRequest`, the same "should blow up if not provided" argument
+      that fixed the uuid fields. The web reply form still redirects on a blank submission because
+      `WebServer` guards on the stripped form value before it ever reaches the request model.
 
 ## Shipped
 

@@ -56,7 +56,7 @@ class InboxService:
             in_reply_to="",
             references=(),
         )
-        rfc_message_id = self._transport.send(envelope, command.body_html, command.body_text)
+        rfc_message_id = self._transport.send(envelope, command.body_html, "")
         return self._repository.add_new_thread(
             SentEmail(
                 session=command.session,
@@ -68,7 +68,7 @@ class InboxService:
                 in_reply_to="",
                 references=(),
                 body_html=command.body_html,
-                body_text=command.body_text,
+                body_text=command.body_html.to_plain_text(),
                 sent_at=now(),
             )
         )
@@ -92,7 +92,7 @@ class InboxService:
             in_reply_to=chain[-1],
             references=chain,
         )
-        rfc_message_id = self._transport.send(envelope, body_html, command.body_text)
+        rfc_message_id = self._transport.send(envelope, body_html, "")
         return self._repository.add_reply(
             SentEmail(
                 session=command.session,
@@ -104,7 +104,7 @@ class InboxService:
                 in_reply_to=chain[-1],
                 references=chain,
                 body_html=command.body_html,
-                body_text=command.body_text,
+                body_text=command.body_html.to_plain_text(),
                 sent_at=now(),
             ),
             command.in_reply_to_email_id,
